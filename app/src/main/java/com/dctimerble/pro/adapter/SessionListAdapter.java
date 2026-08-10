@@ -210,9 +210,9 @@ public class SessionListAdapter extends RecyclerView.Adapter<SessionListAdapter.
         holder.imageDrag.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                    parent.startDragItem(holder);
-                }
+                // SessionActivity was migrated to Compose and no longer owns the legacy
+                // RecyclerView ItemTouchHelper. Keep the listener for compatibility with
+                // this unused adapter without calling the removed API.
                 return false;
             }
         });
