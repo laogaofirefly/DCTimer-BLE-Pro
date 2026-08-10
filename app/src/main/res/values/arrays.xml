@@ -1,0 +1,592 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="item_scr">
+        <item>WCA</item>
+        <item>2x2</item>
+        <item>3x3</item>
+        <item>4x4</item>
+        <item>5x5</item>
+        <item>6x6</item>
+        <item>7x7</item>
+        <item>Megaminx</item>
+        <item>Pyraminx</item>
+        <item>Square-1</item>
+        <item>Clock</item>
+        <item>Skewb</item>
+        <item>LxMxN</item>
+        <item>Cmetrick</item>
+        <item>Gear Cube</item>
+        <item>Siamese Cube</item>
+        <item>15 puzzle</item>
+        <item>Other</item>
+        <item>3x3 subsets</item>
+        <item>Bandaged Cube</item>
+        <item>Megaminx subsets</item>
+        <item>Relay</item>
+        <item>3x3 CFOP</item>
+        <item>3x3 Roux</item>
+    </array>
+
+    <array name="item_wca">
+        <item>3x3x3</item>
+        <item>4x4x4</item>
+        <item>5x5x5</item>
+        <item>2x2x2</item>
+        <item>3x3 BLD</item>
+        <item>3x3 OH</item>
+        <item>3x3 FM</item>
+        <item>Megaminx</item>
+        <item>Pyraminx</item>
+        <item>Square-1</item>
+        <item>Clock</item>
+        <item>Skewb</item>
+        <item>6x6x6</item>
+        <item>7x7x7</item>
+        <item>4x4 BLD</item>
+        <item>5x5 BLD</item>
+        <item>3x3 MBLD</item>
+        <item>FTO</item>
+    </array>
+
+    <array name="item_222">
+        <item>random state</item>
+        <item>3-gen</item>
+        <item>6-gen</item>
+        <item>CLL training</item>
+        <item>EG1 training</item>
+        <item>EG2 training</item>
+        <item>PBL training</item>
+        <item>EG training</item>
+        <item>TCLL+ training</item>
+        <item>TCLL- training</item>
+        <item>No bar</item>
+    </array>
+
+    <array name="item_333">
+        <item>old style</item>
+        <item>random state</item>
+        <item>cross solved</item>
+        <item>last layer</item>
+        <item>PLL</item>
+        <item>edges only</item>
+        <item>corners only</item>
+        <item>last slot+last layer</item>
+        <item>ZBLL</item>
+        <item>ELL</item>
+        <item>CLL</item>
+        <item>last six edges</item>
+        <item>CMLL + LSE</item>
+        <item>edges permutation</item>
+        <item>edges orientation</item>
+        <item>corners permutation</item>
+        <item>corners orientation</item>
+        <item>permutation only</item>
+        <item>orientation only</item>
+        <item>easy cross</item>
+        <item>2GLL</item>
+        <item>ZBLS</item>
+        <item>ZZLL</item>
+        <item>3-cycle edges</item>
+        <item>3-cycle corners</item>
+        <item>3x3 for noobs</item>
+    </array>
+
+    <array name="item_444">
+        <item>old style</item>
+        <item>SiGN</item>
+        <item>YJ</item>
+        <item>edges</item>
+        <item>R,r,U,u</item>
+    </array>
+
+    <array name="item_555">
+        <item>prefix</item>
+        <item>SiGN</item>
+        <item>edges</item>
+    </array>
+
+    <array name="item_666">
+        <item>prefix</item>
+        <item>SiGN</item>
+        <item>suffix</item>
+        <item>edges</item>
+    </array>
+
+    <array name="item_mega">
+        <item>Pochmann</item>
+        <item>old style</item>
+    </array>
+
+    <array name="item_pyr">
+        <item>random state</item>
+        <item>random moves</item>
+        <item>L4E</item>
+    </array>
+
+    <array name="item_sq1">
+        <item>face turn metric</item>
+        <item>twist metric</item>
+        <item>random state</item>
+        <item>cube shape</item>
+        <item>PBL</item>
+    </array>
+
+    <array name="item_clk">
+        <item>WCA</item>
+        <item>Jaap order</item>
+        <item>concise</item>
+        <item>efficient pin order</item>
+    </array>
+
+    <array name="item_15p">
+        <item>piece moves</item>
+        <item>blank moves</item>
+    </array>
+
+    <array name="item_mnl">
+        <item>1x3x3</item>
+        <item>Super 1x3x3</item>
+        <item>2x3x3</item>
+        <item>2x2x3</item>
+        <item>2x2x4</item>
+        <item>3x3x4</item>
+        <item>3x3x5</item>
+        <item>3x3x6</item>
+        <item>3x3x7</item>
+        <item>4x4x6</item>
+        <item>8x8x8</item>
+        <item>9x9x9</item>
+        <item>10x10x10</item>
+        <item>11x11x11</item>
+    </array>
+
+    <array name="item_cmt">
+        <item>normal</item>
+        <item>mini</item>
+    </array>
+
+    <array name="item_smc">
+        <item>1x1x3 block</item>
+        <item>1x2x3 block</item>
+        <item>2x2x2 block</item>
+    </array>
+
+    <array name="item_other">
+        <item>Latch Cube</item>
+        <item>Helicopter</item>
+        <item>Square-2</item>
+        <item>Super SQ1</item>
+        <item>UFO</item>
+        <item>FTO</item>
+        <item>Redi cube</item>
+        <item>Master pyraminx</item>
+        <item>8 puzzle</item>
+        <item>CTO</item>
+        <item>Ivy Cube</item>
+    </array>
+
+    <array name="item_333_sub">
+        <item>2-gen R,U</item>
+        <item>2-gen L,U</item>
+        <item>Roux-gen M,U</item>
+        <item>3-gen F,R,U</item>
+        <item>3-gen R,U,L</item>
+        <item>3-gen R,r,U</item>
+        <item>half turns only</item>
+        <item>LSLL(old)</item>
+    </array>
+
+    <array name="item_bandage">
+        <item>Bicube</item>
+        <item>SQ1 /,(1,0)</item>
+    </array>
+
+    <array name="item_minx_sub">
+        <item>2-gen R,U</item>
+        <item>LSLL</item>
+    </array>
+
+    <array name="item_gear">
+        <item>random state</item>
+        <item>3-gen</item>
+    </array>
+
+    <array name="item_skewb">
+        <item>random state</item>
+        <item>U L R B</item>
+        <item>L2L</item>
+    </array>
+
+    <array name="item_relay">
+        <item>lots of 3x3s</item>
+        <item>234 relay</item>
+        <item>2345 relay</item>
+        <item>23456 relay</item>
+        <item>234567 relay</item>
+        <item>Guildford challenge</item>
+        <item>Mini Guildford challenge</item>
+    </array>
+
+    <array name="item_333_cfop">
+        <item>OLL</item>
+        <item>PLL</item>
+        <item>Last layer</item>
+        <item>F2L</item>
+        <item>ZBLL</item>
+        <item>ZZLL</item>
+        <item>2GLL</item>
+        <item>ELL</item>
+        <item>ZBLS</item>
+        <item>COLL</item>
+        <item>OLLCP</item>
+        <item>EOCP</item>
+        <item>CLL</item>
+    </array>
+
+    <array name="item_333_roux">
+        <item>CMLL</item>
+        <item>LSE</item>
+        <item>L10P</item>
+    </array>
+
+    <array name="opt_penalty">
+        <item>No penalty</item>
+        <item>"+2"</item>
+        <item>DNF</item>
+    </array>
+
+    <array name="opt_solve_333">
+        <item>None</item>
+        <item>Cross</item>
+        <item>Xcross</item>
+        <item>EOline</item>
+        <item>Roux S1</item>
+        <item>Petrus S1</item>
+        <item>EOFC</item>
+    </array>
+
+    <array name="opt_mega_scheme">
+        <item>Default</item>
+        <item>mf8</item>
+    </array>
+
+    <array name="opt_accuracy">
+        <item>0.01 sec</item>
+        <item>0.001 sec</item>
+    </array>
+
+    <array name="opt_enter_time">
+        <item>Timer</item>
+        <item>Typing</item>
+        <item>Stackmat</item>
+        <item>Smart cube</item>
+        <item>Bluetooth timer</item>
+    </array>
+
+    <array name="opt_solve_222">
+        <item>None</item>
+        <item>Face</item>
+        <item>Layer</item>
+    </array>
+
+    <array name="opt_solve_pyr">
+        <item>D</item>
+        <item>L</item>
+        <item>R</item>
+        <item>F</item>
+    </array>
+
+    <array name="opt_timer_font">
+        <item>monospace</item>
+        <item>serif</item>
+        <item>sans-serif</item>
+        <item>CCT</item>
+        <item>lcd1</item>
+        <item>lcd2</item>
+    </array>
+
+    <array name="opt_multi_phase">
+        <item>Off</item>
+        <item>"2"</item>
+        <item>"3"</item>
+        <item>"4"</item>
+        <item>"5"</item>
+        <item>"6"</item>
+    </array>
+
+    <array name="item_import_type">
+        <item>Default</item>
+        <item>2x2</item>
+        <item>3x3</item>
+        <item>4x4</item>
+        <item>5x5</item>
+        <item>6x6</item>
+        <item>7x7</item>
+        <item>Pyraminx</item>
+        <item>Skewb</item>
+    </array>
+
+    <array name="opt_vibrate">
+        <item>Off</item>
+        <item>Only when timer starts</item>
+        <item>Only when timer ends</item>
+        <item>All events</item>
+    </array>
+
+    <array name="opt_vibrate_time">
+        <item>Very short</item>
+        <item>Short</item>
+        <item>Standard</item>
+        <item>Excessive</item>
+        <item>Epic</item>
+    </array>
+
+    <array name="opt_screen_ori">
+        <item>Default</item>
+        <item>Landscape</item>
+        <item>Reverse landscape</item>
+        <item>Portrait</item>
+        <item>Sensor</item>
+    </array>
+
+    <array name="opt_timer_update">
+        <item>On</item>
+        <item>Seconds only</item>
+        <item>Inspection only</item>
+        <item>Off</item>
+    </array>
+
+    <array name="opt_sq_solver">
+        <item>None</item>
+        <item>Face turn metric</item>
+        <item>Twist metric</item>
+    </array>
+
+    <array name="opt_time_format">
+        <item>hh:mm:ss.xy(z)</item>
+        <item>mm:ss.xy(z)</item>
+        <item>ss.xy(z)</item>
+    </array>
+
+    <array name="opt_decimal">
+        <item>.</item>
+        <item>,</item>
+    </array>
+
+    <array name="opt_average">
+        <item>average</item>
+        <item>mean</item>
+    </array>
+
+    <array name="item_timer">
+        <item>WCA inspection</item>
+        <item>Say inspection alert</item>
+        <item>Time format</item>
+        <item>Decimal mark</item>
+        <item>Entering in times with</item>
+        <item>Timer updating</item>
+        <item>Timer accuracy</item>
+        <item>Start delay</item>
+        <item>Multi-phase timing</item>
+        <item>Emulate a stackmat with two hands</item>
+        <item>Show stats on timer screen</item>
+        <item>Drop to stop</item>
+        <item>Sensitivity</item>
+    </array>
+
+    <array name="item_smart">
+        <item>Use method</item>
+        <item>Solution orientation</item>
+        <item>Training orientation</item>
+        <item>Scramble progress style</item>
+        <item>Virtual cube size</item>
+        <item>Gyro follows view</item>
+        <item>Layout</item>
+    </array>
+
+    <array name="item_scramble">
+        <item>Scramble size</item>
+        <item>Monospace scramble font</item>
+        <item>Show scramble view</item>
+        <item>Scramble view size</item>
+        <item>EG traning scramble</item>
+    </array>
+
+    <array name="opt_smart_cube_faces">
+        <item>White</item>
+        <item>Red</item>
+        <item>Green</item>
+        <item>Yellow</item>
+        <item>Orange</item>
+        <item>Blue</item>
+    </array>
+
+    <array name="opt_smart_scramble_progress">
+        <item>Dim completed moves</item>
+        <item>Hide completed moves</item>
+    </array>
+
+    <array name="opt_smart_solve_method">
+        <item>CFOP</item>
+        <item>Roux</item>
+    </array>
+
+    <array name="opt_smart_layout">
+        <item>Default</item>
+        <item>Cube-centered (for large-screen devices 10 inches and above)</item>
+    </array>
+
+    <array name="opt_app_language">
+        <item>Follow system</item>
+        <item>English</item>
+        <item>Simplified Chinese</item>
+        <item>Traditional Chinese</item>
+    </array>
+
+    <array name="item_stats">
+        <item>Prompt when new time detected</item>
+        <item>Rolling average 1</item>
+        <item>Length</item>
+        <item>Rolling average 2</item>
+        <item>Length</item>
+        <item>Match session when scramble type changes</item>
+    </array>
+
+    <array name="item_tools">
+        <item>Solve 3x3x3 cube</item>
+        <item>Solve square-1 cube shape</item>
+        <item>Solve 2x2x2 cube</item>
+        <item>Solve Pyraminx V</item>
+    </array>
+
+    <array name="item_scheme">
+        <item>NxNxN</item>
+        <item>Pyraminx</item>
+        <item>Square-1</item>
+        <item>Skewb</item>
+        <item>Megaminx</item>
+    </array>
+
+    <array name="item_interface">
+        <item>Language</item>
+        <item>Timer font</item>
+        <item>Timer size</item>
+        <item>Background color</item>
+        <item>Text color</item>
+        <item>Background image</item>
+        <item>Show image</item>
+        <item>Opacity</item>
+        <item>Best time color</item>
+        <item>Worst time color</item>
+        <item>Best rolling average color</item>
+    </array>
+
+    <array name="item_gesture">
+        <item>Swipe left</item>
+        <item>Swipe right</item>
+        <item>Swipe up</item>
+        <item>Swipe down</item>
+    </array>
+
+    <array name="item_hardware">
+        <item>Always keep screen on</item>
+        <item>Haptic feedback</item>
+        <item>Hapic feedback duration</item>
+        <item>Screen orientation</item>
+    </array>
+
+    <array name="opt_eg_scramble">
+        <item>CLL(EG0)</item>
+        <item>EG1</item>
+        <item>EG2</item>
+        <item>Pi</item>
+        <item>H</item>
+        <item>U</item>
+        <item>T</item>
+        <item>L</item>
+        <item>Sune</item>
+        <item>Anti-sune</item>
+    </array>
+
+    <array name="opt_gesture">
+        <item>None</item>
+        <item>Delete last solve</item>
+        <item>New scramble</item>
+        <item>Edit penalty</item>
+        <item>Clear times</item>
+        <item>Manually enter time</item>
+        <item>Scramble detail</item>
+        <item>Change session</item>
+    </array>
+
+    <array name="opt_sort_order">
+        <item>Default (newest last)</item>
+        <item>Newest first</item>
+        <item>Result</item>
+        <item>Result (desc)</item>
+        <item>Average 1</item>
+        <item>Average 1 (desc)</item>
+        <item>Average 2</item>
+        <item>Average 2 (desc)</item>
+    </array>
+
+    <array name="opt_sort_order2">
+        <item>Default (newest last)</item>
+        <item>Newest first</item>
+        <item>Result</item>
+        <item>Result (desc)</item>
+    </array>
+
+    <array name="item_date_range">
+        <item>Day</item>
+        <item>Week</item>
+        <item>Month</item>
+        <item>Year</item>
+    </array>
+
+    <array name="item_week">
+        <item>Sun</item>
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+    </array>
+
+    <array name="item_month">
+        <item>J</item>
+        <item>F</item>
+        <item>M</item>
+        <item>A</item>
+        <item>M</item>
+        <item>J</item>
+        <item>J</item>
+        <item>A</item>
+        <item>S</item>
+        <item>O</item>
+        <item>N</item>
+        <item>D</item>
+    </array>
+
+    <array name="sampling_rate">
+        <item>"8000"</item>
+        <item>"11025"</item>
+        <item>"16000"</item>
+        <item>"22050"</item>
+        <item>"24000"</item>
+        <item>"32000"</item>
+        <item>"44100"</item>
+    </array>
+
+    <array name="data_format">
+        <item>8 bit</item>
+        <item>16 bit</item>
+    </array>
+
+    <array name="item_suff">
+        <item>clockwise by 90 degrees</item>
+        <item>by 180 degrees</item>
+        <item>counterclockwise by 90 degrees</item>
+    </array>
+</resources>

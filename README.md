@@ -1,0 +1,98 @@
+<h4 align="right"><strong><a href="README-en.md">English</a></strong> | 简体中文</h4>
+
+<div align="center">
+  <img src=".github/assets/dctimer-logo.png" alt="DCTimer-BLE logo" width="128" height="128" />
+
+  <h1>DCTimer-BLE</h1>
+
+  <p>
+    基于 DCTimer-Android 二次开发的魔方计时器，支持智能魔方和奇艺智能计时器
+  </p>
+
+  <p>
+    <img alt="Android" src="https://img.shields.io/badge/Android-targetSdk%2035-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
+    <img alt="Java" src="https://img.shields.io/badge/Java-17-007396?style=for-the-badge&logo=openjdk&logoColor=white" />
+    <img alt="Gradle" src="https://img.shields.io/badge/Gradle-8.11.1-02303A?style=for-the-badge&logo=gradle&logoColor=white" />
+  </p>
+
+  <p>
+    <img src="website/assets/web1.svg" alt="DCTimer-BLE 计时界面截图" height="280" />
+    <img src="website/assets/web3.svg" alt="DCTimer-BLE 功能改进截图" height="280" />
+  </p>
+</div>
+
+---
+## 下载安装
+
+- [官网下载](https://dctimer.huizhi.ink)
+- [Github Releases](https://github.com/huizhiLLL/DCTimer-Android-BLE/releases/latest)
+
+## 说明
+- DCTimer-BLE 使用了新的包名，不会与原 DCTimer 发生安装冲突
+- DCTimer-BLE 兼容原数据格式，可从原 DCTimer 导出数据再导入
+- 某些设备下的 DCTimer 可能会出现数据导出失败问题，建议将导出时的路径删除`DCTimer`，即留下`/storage/emulated/0/database.db`；导入时在手机存储的根路径下选择该 db 文件
+
+## 特点
+
+- 兼容主流的智能魔方品牌（GAN、Moyu、Qiyi）
+- 支持奇艺智能计时器、GAN 魔方机器人二代
+- 支持 CFOP/Roux 解法分段及专项训练
+  - CFOP：F2L/OLL/PLL/顶层/CLL/ELL/COLL/EOCP/2GLL/OLLCP/ZZLL/ZBLS/ZBLL
+  - Roux：CMLL/LSE/L10P
+- 自由的 3D 虚拟魔方同步以及陀螺仪跟随视角（三品牌均适配）
+- 精心优化的智能打乱推进/纠错体验
+- 连接极速（无需手动获取 MAC 地址，软件启动到连接成功只需 2-4s）
+
+## 支持
+
+- `Moyu32`（魔域智能）
+- `QYSC` / `Tornado V4`（奇艺智能及风系列）
+- `GAN`（`v2 / v3 / v4`）（GAN 智能）
+- `QiYi Smart Timer`（奇艺智能计时器）
+- `GAN Robot v2`（GAN 魔方机器人二代）
+
+## 新增 / 改进
+
+- 手动输入计时自动分割，无需输入小数点
+- wca 观察模式补全 8s/12s 语音提醒
+- 成绩列表的 PB 历程标注和排序
+- 枫叶、FTO 打乱及状态图绘制
+- 魔表打乱状态绘制适应 WCA 新规则
+- 导入导出数据库、导入/导出打乱、背景图选择切换到系统文档选择器
+- 升级到 `AndroidX / AGP 8.9.2 / Gradle 8.11.1 / targetSdk 35`
+
+## 鸣谢
+
+- [DCTimer-Android](https://github.com/MeigenChou/DCTimer-Android)：DCTimer-Android 原仓库
+- [cstimer](https://github.com/cs0x7f/cstimer)：智能魔方协议以及部分算法参考
+- [smartcube-web-bluetooth](https://github.com/poliva/smartcube-web-bluetooth)：智能魔方协议参考
+- [qiyi_smartcube_protocol](https://codeberg.org/Flying-Toast/qiyi_smartcube_protocol)：智能魔方协议参考
+- [CubicTimer](https://github.com/hato-ya/CubicTimer)：奇艺智能计时器协议参考
+- [DCTimer2.0](https://gitee.com/andersgong/DCTimer)：枫叶魔方打乱状态图绘制参考
+- [妙言](https://miaoyan.app)：官网设计参考
+- [Codex](https://github.com/codex)：开发伙伴
+
+- [Soda](https://space.bilibili.com/400839068)：奇艺智能及风智能测试魔方来源
+- [Visionary](https://space.bilibili.com/674586122)：GAN 智能魔方测试
+---
+
+如果这个项目对你有帮助，希望你能给它一颗 Star， 这将成为我后续维护的动力 ~
+
+**感谢以下对该项目的赞助支持:**
+- 9247
+- [锤子](https://space.bilibili.com/3493132083661706)
+- [贾梦](https://github.com/nmb1337)
+
+<details>
+  <summary>赞助支持</summary>
+
+  <p>
+    <img src=".github/assets/sponsor-wechat.png" alt="微信支付赞助码" width="260" />
+    <img src=".github/assets/sponsor-alipay.jpg" alt="支付宝赞助码" width="260" />
+  </p>
+</details>
+
+## License
+
+GPLv3
+

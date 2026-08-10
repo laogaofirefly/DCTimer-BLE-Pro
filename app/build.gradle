@@ -1,0 +1,157 @@
+import java.util.Properties
+
+apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+def releaseKeyPropertiesFile = rootProject.file("key.properties")
+def releaseKeyProperties = new Properties()
+
+if (releaseKeyPropertiesFile.exists()) {
+    releaseKeyPropertiesFile.withInputStream { stream ->
+        releaseKeyProperties.load(stream)
+    }
+}
+
+def releaseSigning = [
+        storeFile    : providers.gradleProperty("releaseStoreFile").orNull ?: releaseKeyProperties.getProperty("storeFile"),
+        storePassword: providers.gradleProperty("releaseStorePassword").orNull ?: releaseKeyProperties.getProperty("storePassword"),
+        keyAlias     : providers.gradleProperty("releaseKeyAlias").orNull ?: releaseKeyProperties.getProperty("keyAlias"),
+        keyPassword  : providers.gradleProperty("releaseKeyPassword").orNull ?: releaseKeyProperties.getProperty("keyPassword"),
+]
+
+def hasReleaseSigning = releaseSigning.every { _, value ->
+    value != null && value.toString().trim()
+}
+
+def appVersionCode = 232
+def appVersionName = "2.3.2"
+def releaseApkBaseName = "DCTimer-BLE-Pro-v${appVersionName}".toString()
+def releaseApkFileName = "${releaseApkBaseName}.apk".toString()
+
+android {
+    namespace 'com.dctimerble.pro'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.dctimerble.pro"
+        minSdk 14
+        targetSdk 35
+        vectorDrawables.useSupportLibrary true
+        versionCode appVersionCode
+        versionName appVersionName
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile rootProject.file(releaseSigning.storeFile)
+                storePassword releaseSigning.storePassword
+                keyAlias releaseSigning.keyAlias
+                keyPassword releaseSigning.keyPassword
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    buildFeatures {
+        compose true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.5.14'
+    }
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+tasks.register("renameReleaseApk") {
+    doLast {
+        def releaseOutputDir = file("${layout.buildDirectory.get().asFile}/outputs/apk/release")
+        def renamedApk = new File(releaseOutputDir, releaseApkFileName)
+        def generatedApk = releaseOutputDir.listFiles()?.find { file ->
+            file.name.toLowerCase().endsWith(".apk") && file.name != releaseApkFileName
+        }
+        def outputMetadataFile = new File(releaseOutputDir, "output-metadata.json")
+
+        if (generatedApk == null) {
+            return
+        }
+
+        if (renamedApk.exists()) {
+            renamedApk.delete()
+        }
+
+        if (!generatedApk.renameTo(renamedApk)) {
+            copy {
+                from generatedApk
+                into releaseOutputDir
+                rename { releaseApkFileName }
+            }
+            delete generatedApk
+        }
+
+        if (outputMetadataFile.exists()) {
+            def outputMetadataText = outputMetadataFile.getText("UTF-8")
+            outputMetadataText = outputMetadataText.replace('"outputFile": "app-release.apk"', "\"outputFile\": \"${releaseApkFileName}\"")
+            outputMetadataText = outputMetadataText.replace('"outputFile": "DCTimer-BLE-Pro-vnull.apk"', "\"outputFile\": \"${releaseApkFileName}\"")
+            outputMetadataFile.write(outputMetadataText, "UTF-8")
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name == "assembleRelease") {
+        task.finalizedBy("renameReleaseApk")
+    }
+}
+
+gradle.taskGraph.whenReady { taskGraph ->
+    def requestedReleaseTask = taskGraph.allTasks.any { task ->
+        task.name.toLowerCase().contains("release")
+    }
+
+    if (requestedReleaseTask && !hasReleaseSigning) {
+        throw new GradleException(
+                "缺少 release 签名配置。请在项目根目录创建 key.properties，" +
+                        "或通过 -PreleaseStoreFile/-PreleaseStorePassword/-PreleaseKeyAlias/-PreleaseKeyPassword 传入。"
+        )
+    }
+}
+
+dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.06.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+    implementation 'androidx.activity:activity-compose:1.9.0'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    testImplementation 'junit:junit:4.13.2'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    //implementation 'com.wdullaer:materialdatetimepicker:3.6.4'
+    //implementation 'com.whiteelephant:monthandyearpicker:1.3.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+}

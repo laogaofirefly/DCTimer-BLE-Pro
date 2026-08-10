@@ -1,0 +1,5799 @@
+package com.dctimerble.pro.activity;
+
+import static com.dctimerble.pro.APP.*;
+import static com.dctimerble.pro.adapter.SettingAdapter.*;
+import static scrambler.Scrambler.*;
+
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.app.Activity;
+import android.app.ProgressDialog;
+import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.content.*;
+import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.database.Cursor;
+import android.graphics.*;
+import android.hardware.*;
+import android.location.LocationManager;
+import android.net.Uri;
+import android.os.*;
+import android.provider.Settings;
+import androidx.annotation.NonNull;
+import com.google.android.material.snackbar.Snackbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.core.widget.TextViewCompat;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.AppCompatTextView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import android.text.Editable;
+import android.text.Html;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
+import android.util.Log;
+import android.view.*;
+import com.google.android.material.navigation.NavigationView;
+import android.widget.*;
+
+import com.dctimerble.pro.APP;
+import com.dctimerble.pro.R;
+import com.dctimerble.pro.adapter.*;
+import com.dctimerble.pro.database.SessionManager;
+import com.dctimerble.pro.dialog.*;
+import com.dctimerble.pro.model.*;
+import com.dctimerble.pro.util.*;
+import com.dctimerble.pro.view.*;
+import com.dctimerble.pro.widget.*;
+import com.dingmouren.colorpicker.ColorPickerDialog;
+import com.dingmouren.colorpicker.OnColorPickerListener;
+
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.*;
+
+import org.json.JSONObject;
+
+import cs.threephase.Util;
+import scrambler.Scrambler;
+import uz.shift.colorpicker.LineColorPicker;
+import uz.shift.colorpicker.OnColorChangedListener;
+
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+    private static final String UPDATE_INFO_URL = "https://dctimer.huizhi.ink/update.json";
+    private APP app;
+    public Context context;
+    private DrawerLayout drawer;
+    private CustomToolbar toolbar;    //工具栏
+    private NavigationView navigationView;
+    private RelativeLayout frame;
+    private TabHost tabHost;
+    private AppCompatTextView tvScramble;
+    private Button btnScramble;  //打乱按钮
+    private ImageButton btnLeft;
+    private ImageButton btnRight;
+    private TextView tvTimer;   //计时器
+    private SmartCubeImageView scrambleView; //打乱图案
+    private SmartCube3DView smartCube3DView; //智能魔方实时 3D 预览
+    private final Object smartCubeGyroLock = new Object();
+    private final float[] latestSmartCubeGyro = new float[4];
+    private final float[] smartCubeGyroCalibration = new float[4];
+    private boolean hasLatestSmartCubeGyro;
+    private boolean hasSmartCubeGyroCalibration;
+    private boolean hasSmartCubeGyroCapability;
+    private boolean smartCubeGyroUiUpdatePosted;
+    private Bitmap bmScrambleView;
+    private TextView tvStat;    //统计简要
+    private TextView tvMulPhase;
+    private boolean smartCubeImmersiveLayoutActive;
+    private PopupWindow popupWindow;	//打乱弹出窗口
+    private TextAdapter s1Adapter;
+    private TextAdapter s2Adapter;
+    //private ListView listView;
+    private View view;
+    private CenterRadioButton rbTimer, rbResult, rbSetting;
+    private ProgressBar pbScramble;
+    private ProgressBar pbScan;
+    private TextView tvTest;
+    private Button btnScan;
+    private KeypadDialog inputTimeDialog;
+    private final Runnable stopBleScanRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (btnScan != null) btnScan.setVisibility(View.VISIBLE);
+            if (pbScan != null) pbScan.setVisibility(View.GONE);
+            if (bluetoothTools != null) bluetoothTools.stopScan();
+        }
+    };
+
+    private LinearLayout llSession;
+    private LinearLayout llSearch;
+    private LinearLayout llTitle;	//成绩标题
+    private ListView lvResult;	//成绩列表
+    //private RecyclerView rvResult;  //成绩列表
+    //public ResultAdapter resAdapter;
+    public TimesAdapter resAdapter;
+    private Button btnSession;
+    private Button btnSessionMean;
+    private ImageButton btnNext, btnPrev;
+    private ClearEditText editSearch;
+    private EditText editText;
+    private ProgressDialog progressDialog;
+    private AlertDialog dialog;
+
+    private SettingAdapter stAdapter;
+    private RecyclerView rvSetting;    //设置列表
+    private HorizontalScrollView settingSectionScroll;
+    private LinearLayout settingSectionTabs;
+    private final List<Integer> settingSectionPositions = new ArrayList<>();
+    private final List<TextView> settingSectionTabViews = new ArrayList<>();
+    private int activeSettingSection = -1;
+    private ColorSchemeView colorSchemeView;
+    public Bitmap bitmap;
+
+    private SharedPreferences sp; //保存配置
+    //public static SharedPreferences.Editor edit;
+    public Vibrator vibrator;
+    public Scrambler currentScramble;
+    public Scrambler nextScramble;
+    public DCTTimer timer;
+    public Result result;
+    public SessionManager sessionManager;
+    private List<Integer> searchResult = new ArrayList<>();
+    private int searchIndex;
+    private int pendingScrambleExportCount;
+
+    public boolean canStart;
+    public int lastScrambleType = -64;
+    private boolean isSwipe;
+    private boolean touchDown;
+    private boolean readyHoldUiActive;
+    private boolean scrambleGenerating = false;
+    private int curTab;
+    private int dip40;
+    private int mpCount;
+    private int selectIdx, selectIdx2;
+    private int startX, startY;
+    private int gesture;
+    private long exitTime = 0;
+    //private List<String> nextScramble = new ArrayList<>();
+    private InspectionAlertPlayer inspectionAlertPlayer;
+    private SensorManager sensorManager;
+    private Sensor sensor;
+    private double lastAcc;
+    private String smartCubeScrambleCache = "";
+    private final List<String> smartCubeScrambleMoves = new ArrayList<>();
+    private final List<String> smartCubeScrambleDisplayMoves = new ArrayList<>();
+    private final List<String> smartCubeScrambleStates = new ArrayList<>();
+    private int smartCubeScrambleProgress;
+    private int smartCubeScrambleHiddenPrefix;
+    private String smartCubeScramblePendingMove;
+    private int smartCubeCorrectionBaseProgress = -1;
+    private String smartCubeCorrectionBasePendingMove;
+    private final List<String> smartCubeCorrectionMoves = new ArrayList<>();
+    private final List<String> smartCubeDeviationMoves = new ArrayList<>();
+    private boolean smartCubeCorrectionLocked;
+    private long smartCubeLastRestoreHintTime;
+    private boolean smartCubeSkipStartForCurrentMove;
+    private boolean smartCubeTrainingScrambleRefreshPending;
+    private boolean pendingBleDialogAfterPermission;
+    private boolean pendingBleScanAfterPermission;
+    private boolean pendingBleDialogAfterBluetoothEnable;
+
+    private Stackmat stackmat;
+    private BluetoothTools bluetoothTools;
+    private BLEDeviceAdapter adapter;
+    //private SmartCube cube;
+
+    private static final int REQUEST_BACKGROUND_IMAGE = 1;
+    private static final int REQUEST_IMPORT_DATABASE = 9;
+    private static final int REQUEST_EXPORT_DATABASE = 10;
+    private static final int REQUEST_IMPORT_SCRAMBLE = 11;
+    private static final int REQUEST_EXPORT_SCRAMBLE = 12;
+    private static final int REQUEST_BLE_PERMISSION = 6;
+    private static final int REQUEST_ENABLE_BLUETOOTH = 13;
+    private static final int ANDROID_API_S = 31;
+    private static final int SMART_CUBE_CORRECTION_LIMIT = 10;
+    private static final int STATS_MIN_TEXT_SIZE_SP = 16;
+    private static final int STATS_MAX_TEXT_SIZE_SP = 30;
+    private static final float STATS_TIMER_TEXT_RATIO = 0.26f;
+    private static final int SMART_CUBE_IMMERSIVE_MIN_SW_DP = 720;
+    private static final int SMART_CUBE_IMMERSIVE_SCRAMBLE_OFFSET_DP = 56;
+    private static final int MULTI_PHASE_DEFAULT_TEXT_SIZE_SP = 18;
+    private static final int SMART_CUBE_IMMERSIVE_PHASE_MIN_SP = 18;
+    private static final int SMART_CUBE_IMMERSIVE_PHASE_MAX_SP = 36;
+    private static final float SMART_CUBE_IMMERSIVE_PHASE_TIMER_RATIO = 0.32f;
+    private static final long SMART_CUBE_RESTORE_HINT_INTERVAL_MS = 5000L;
+    private static final String PERMISSION_BLUETOOTH_SCAN = "android.permission.BLUETOOTH_SCAN";
+    private static final String PERMISSION_BLUETOOTH_CONNECT = "android.permission.BLUETOOTH_CONNECT";
+    private static final String SOLVED_FACELET = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
+    private static final int[] VIBRATE_TIME = {30, 50, 80, 150, 240};
+    private static final int[] ITEMS_ID = {R.array.opt_enter_time, R.array.opt_timer_update, R.array.opt_accuracy, R.array.opt_multi_phase,
+            R.array.opt_average, R.array.opt_solve_333, R.array.opt_solve_222, R.array.opt_mega_scheme,
+            R.array.opt_timer_font, R.array.opt_screen_ori, R.array.opt_vibrate, R.array.opt_vibrate_time,
+            R.array.opt_sq_solver, R.array.opt_time_format, R.array.opt_average, R.array.opt_gesture, R.array.opt_decimal,
+            R.array.opt_smart_layout};
+
+    private static class SmartCubeSequenceProgress {
+        final int progress;
+        final String pendingMove;
+
+        SmartCubeSequenceProgress(int progress, String pendingMove) {
+            this.progress = progress;
+            this.pendingMove = pendingMove;
+        }
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        sp = super.getSharedPreferences("dctimer", Activity.MODE_PRIVATE);
+        int savedAppLanguage = sp.getInt("applang", 0);
+        if (savedAppLanguage < 0 || savedAppLanguage > 3) savedAppLanguage = 0;
+        APP.applyAppLanguage(savedAppLanguage);
+        Window window = getWindow();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {    //5.0
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        }
+        setContentView(R.layout.activity_main);
+        context = this;
+        app = getInstance();
+        //edit = sp.edit();
+        uiMode = getResources().getConfiguration().uiMode;
+        dm = getResources().getDisplayMetrics();
+        dpi = dm.density;
+        fontScale = dm.scaledDensity;
+        dip300 = Math.round(dpi * 300);
+        dip40 = Math.round(dpi * 40);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            getWindowManager().getDefaultDisplay().getRealMetrics(dm);
+        } else getWindowManager().getDefaultDisplay().getMetrics(dm);
+        //Log.w("dct", dm.widthPixels+"x"+dm.heightPixels);
+        //System.out.println(dpi+", "+dm.widthPixels);
+        File appExternalDir = getExternalFilesDir(null);
+        if (appExternalDir != null) {
+            defaultPath = new File(appExternalDir, "DCTimer-BLE").getAbsolutePath() + File.separator;
+        } else {
+            defaultPath = getFilesDir().getAbsolutePath() + File.separator;
+        }
+        dataPath = getFilesDir().getParent() + "/databases/";
+        //Log.w("dct", "path: "+context.getFilesDir().getPath());
+        //Log.e("dct", "ext path: "+context.getExternalFilesDir(null).getPath());
+        app.readPref(sp);
+        StringUtils.scrambleItems = getResources().getStringArray(R.array.item_scr);
+        StringUtils.scrambleSubitems = new String[StringUtils.scrambleItems.length][];
+        int[] subid = {R.array.item_wca, R.array.item_222, R.array.item_333, R.array.item_444, R.array.item_555, R.array.item_666,
+                R.array.item_666, R.array.item_mega, R.array.item_pyr, R.array.item_sq1, R.array.item_clk, R.array.item_skewb,
+                R.array.item_mnl, R.array.item_cmt, R.array.item_gear, R.array.item_smc, R.array.item_15p, R.array.item_other,
+                R.array.item_333_sub, R.array.item_bandage, R.array.item_minx_sub, R.array.item_relay, R.array.item_333_cfop,
+                R.array.item_333_roux};
+        for (int i = 0; i < subid.length; i++)
+            StringUtils.scrambleSubitems[i] = getResources().getStringArray(subid[i]);
+        for (int i = 0; i < itemStr.length; i++)
+            itemStr[i] = getResources().getStringArray(ITEMS_ID[i]);
+        if (screenOn) acquireWakeLock();
+        toolbar = findViewById(R.id.toolbar); //工具栏
+        toolbar.setTitle("");
+        //toolbar.setBackgroundColor(0x10ffffff);
+        setSupportActionBar(toolbar);
+        drawer = findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+        navigationView = findViewById(R.id.nav_view);  //导航栏
+        navigationView.setNavigationItemSelectedListener(this);
+        frame = findViewById(R.id.main_layout);
+        tabHost = findViewById(R.id.tabhost);
+        tabHost.setup();
+        int[] ids = {R.id.tab_timer, R.id.tab_result, R.id.tab_settings};
+        for (int i = 0; i < 3; i++) {
+            TabHost.TabSpec myTab = tabHost.newTabSpec("tab" + i);
+            myTab.setIndicator("tab");
+            myTab.setContent(ids[i]);
+            tabHost.addTab(myTab);
+        }
+        tabHost.setCurrentTab(0);
+        tabHost.setOnTabChangedListener(new TabHost.OnTabChangeListener() {
+            @Override
+            public void onTabChanged(String s) {
+                if (isTimerTabActive()) {
+                    showScrambleView();
+                } else {
+                    hideTimerPageCubeState(true);
+                }
+                invalidateOptionsMenu();
+            }
+        });
+        if (useBgcolor) {
+            setBackgroundColor();
+        } else setBackground();
+
+        RadioGroup radioTab = findViewById(R.id.radio_tab);
+        radioTab.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup radioGroup, int i) {
+                switch (i) {
+                    case R.id.rb_timer:
+                        curTab = 0;
+                        break;
+                    case R.id.rb_result:
+                        curTab = 1;
+                        break;
+                    case R.id.rb_setting:
+                        curTab = 2;
+                        break;
+                }
+                tabHost.setCurrentTab(curTab);
+            }
+        });
+        rbTimer = findViewById(R.id.rb_timer);
+        rbResult = findViewById(R.id.rb_result);
+        rbSetting = findViewById(R.id.rb_setting);
+
+        //计时
+        tvScramble = findViewById(R.id.tv_scramble);
+        btnScramble = findViewById(R.id.bt_scramble);    //打乱按钮
+        btnScramble.setOnClickListener(mOnClickListener);
+        pbScramble = findViewById(R.id.progress);
+        pbScramble.getIndeterminateDrawable().setColorFilter(getTextColor(), PorterDuff.Mode.SRC_IN);
+        btnLeft = findViewById(R.id.bt_left);
+        btnLeft.setOnClickListener(mOnClickListener);
+        btnRight = findViewById(R.id.bt_right);
+        btnRight.setOnClickListener(mOnClickListener);
+        tvTimer = findViewById(R.id.tv_timer);
+        tvTimer.setOnTouchListener(mOnTouchListener);
+        scrambleView = findViewById(R.id.iv_scramble);
+        smartCube3DView = findViewById(R.id.gl_cube);
+        smartCube3DView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (shouldShowTimerPageCubeState()) {
+                    showCubeStateDialog();
+                }
+            }
+        });
+        int tvHeight = (int) (dm.heightPixels - 76 * dpi) / 2;
+        tvScramble.setHeight(tvHeight);
+        //tvScramble.setMovementMethod(ScrollingMovementMethod.getInstance());
+        tvStat = findViewById(R.id.tv_stat);
+        tvMulPhase = findViewById(R.id.tv_multi_phase);
+        //成绩
+        llSession = findViewById(R.id.ll_session);
+        llSearch = findViewById(R.id.ll_search);
+        llTitle = findViewById(R.id.ll_title);
+        //lvTimes = findViewById(R.id.lv_times);
+        lvResult = findViewById(R.id.list_res);
+//        rvResult = findViewById(R.id.rv_result);
+//        LinearLayoutManager lm = new LinearLayoutManager(this);
+//        lm.setOrientation(LinearLayoutManager.VERTICAL);
+//        rvResult.setLayoutManager(lm);
+        btnSession = findViewById(R.id.btn_session);
+        btnSession.setOnClickListener(mOnClickListener);
+        btnSession.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                sessionManager.updateSessionCount();
+                Intent intent = new Intent(context, SessionActivity.class);
+                startActivityForResult(intent, 2);
+                return true;
+            }
+        });
+        ImageButton btSearch = findViewById(R.id.btn_search);
+        btSearch.setOnClickListener(mOnClickListener);
+        ImageButton btClear = findViewById(R.id.btn_clear);
+        btClear.getDrawable().setColorFilter(0xff007aff, PorterDuff.Mode.SRC_ATOP);
+        btClear.setOnClickListener(mOnClickListener);
+        editSearch = findViewById(R.id.edit_search);
+        editSearch.addTextChangedListener(mTextWatcher);
+        btnNext = findViewById(R.id.btn_next);
+        btnNext.setOnClickListener(mOnClickListener);
+        btnPrev = findViewById(R.id.btn_prev);
+        btnPrev.setOnClickListener(mOnClickListener);
+        Button btCancel = findViewById(R.id.btn_cancel);
+        btCancel.setOnClickListener(mOnClickListener);
+        btnSessionMean = findViewById(R.id.btn_session_mean);
+        btnSessionMean.setOnClickListener(mOnClickListener);
+        //StateListDrawable sldraw = (StateListDrawable) btnSessionMean.getBackground();
+        //ShapeDrawable sdraw = (ShapeDrawable) btnSessionMean.getBackground();
+        //btnSessionMean.setBackgroundDrawable(sdraw);
+        //设置
+        Map<Integer, String> headers = new HashMap<>();
+        List<Map<String, Object>> cells = new ArrayList<>();
+        Utils.addSection(headers, cells, getString(R.string.title_timer), getResources().getStringArray(R.array.item_timer),
+                new int[] {1, 1, 0, 0, 0, 0, 0, 2, 0, 1, 1, 1, 2},
+                new Object[] {wca, inspectionAlert, itemStr[13][timeFormat], itemStr[16][decimalMark], itemStr[0][enterTime], itemStr[1][timerUpdate], itemStr[2][timerAccuracy], String.format("%.02fs", freezeTime/20f), itemStr[3][multiPhase], simulateSS, showStat, dropToStop, ""},
+                new int[] {0, 0, 0, 0, 0, 0, 0, 20<<16|freezeTime, 0, 0, 0, 0, 95<<16|((int) (sensitivity *100)-5)},
+                new int[] {ST_WCA, ST_INSPECTION_ALERT, ST_TIME_FORMAT, ST_DECIMAL_MARK, ST_ENTER_TIME, ST_TIMER_UPDATE, ST_TIMER_ACCURACY, ST_START_DELAY, ST_MULTI_PHASE, ST_SIMULATE_SS, ST_SHOW_STATS, ST_DROP_TO_STOP, ST_SENSITIVITY});
+        int smartSectionStart = cells.size();
+        String[] smartSettingItems = getResources().getStringArray(R.array.item_smart);
+        Utils.addSection(headers, cells, getString(R.string.title_smart), smartSettingItems,
+                new int[] {0, 0, 0, 0, 2, 1, 0},
+                new Object[] {getResources().getStringArray(R.array.opt_smart_solve_method)[smartCubeSolveMethod], getSmartCubeOrientationLabel(smartCubeSolveOrientation),
+                        getSmartCubeOrientationLabel(smartCubeTrainingOrientation),
+                        getResources().getStringArray(R.array.opt_smart_scramble_progress)[smartCubeScrambleProgressStyle],
+                        String.valueOf(smartCubeSize), smartCubeGyroFollow, getResources().getStringArray(R.array.opt_smart_layout)[smartCubeLayoutMode]},
+                new int[] {0, 0, 0, 0, 16<<16|(smartCubeSize/10-16), 0, 0},
+                new int[] {ST_SMART_SOLVE_METHOD, ST_SMART_ORIENTATION, ST_SMART_TRAINING_ORIENTATION, ST_SMART_SCRAMBLE_PROGRESS, ST_SMART_CUBE_SIZE, ST_SMART_GYRO_FOLLOW, ST_SMART_LAYOUT});
+        cells.get(smartSectionStart + 6).put("desc", getString(R.string.smart_cube_gyro_follow_desc));
+        Utils.addSection(headers, cells, getString(R.string.title_scramble), getResources().getStringArray(R.array.item_scramble),
+                new int[] {2, 1, 1, 2, 0},
+                new Object[] {String.valueOf(scrambleSize), monoFont, showImage, "", ""},
+                new int[] {18<<16|(scrambleSize-12), 0, 0, 16<<16|(imageSize/10-16), 0},
+                new int[] {ST_SCR_FONT, ST_MONO_SCRAMBLE, ST_SHOW_SCRAMBLE, ST_IMAGE_SIZE, ST_EG_SCRAMBLE});
+        Utils.addSection(headers, cells, getString(R.string.title_stats), getResources().getStringArray(R.array.item_stats),
+                new int[] {1, 0, 0, 0, 0, 1},
+                new Object[] {promptToSave, itemStr[14][avg1Type], String.valueOf(avg1len), itemStr[4][avg2Type], String.valueOf(avg2len), selectSession},
+                new int[6],
+                new int[] {ST_PROMPT_TO_SAVE, ST_AVG1_TYPE, ST_AVG1_LEN, ST_AVG2_TYPE, ST_AVG2_LEN, ST_SELECT_SESSION});
+        Utils.addSection(headers, cells, getString(R.string.title_tools), getResources().getStringArray(R.array.item_tools),
+                new int[6], new Object[] {itemStr[5][solve333], itemStr[12][solveSq1], itemStr[6][solve222], ""}, new int[6],
+                new int[] {ST_SOLVE_333, ST_SOLVE_SQ1, ST_SOLVE_222, ST_SOLVE_PYR});
+        Utils.addSection(headers, cells, getString(R.string.title_scheme), getResources().getStringArray(R.array.item_scheme),
+                new int[5], new Object[] {"", "", "", "", itemStr[7][megaColorScheme]}, new int[5],
+                new int[] {ST_SCHEME_NNN, ST_SCHEME_PYR, ST_SCHEME_SQ1, ST_SCHEME_SKEWB, ST_MEGA_SCHEME});
+        Utils.addSection(headers, cells, getString(R.string.title_interface), getResources().getStringArray(R.array.item_interface),
+                new int[] {0, 0, 2, 0, 0, 0, 1, 2, 0, 0, 0},
+                new Object[] {getResources().getStringArray(R.array.opt_app_language)[appLanguage], itemStr[8][timerFont], String.valueOf(timerSize), "", "", "", !useBgcolor, "", "", "", ""},
+                new int[] {0, 0, 70<<16|(timerSize-50), 0, 0, 0, 0, 80<<16|(opacity-20), 0, 0, 0},
+                new int[] {ST_APP_LANGUAGE, ST_TIMER_FONT, ST_TIMER_SIZE, ST_BACKGROUND_COLOR, ST_TEXT_COLOR, ST_BACKGROUND_IMAGE, ST_SHOW_BACKGROUND_IMAGE, ST_OPACITY, ST_BEST_TIME_COLOR, ST_WORST_TIME_COLOR, ST_BEST_AVERAGE_COLOR});
+        Utils.addSection(headers, cells, getString(R.string.title_gesture), getResources().getStringArray(R.array.item_gesture),
+                new int[4], new Object[] {itemStr[15][swipeType[0]], itemStr[15][swipeType[1]], itemStr[15][swipeType[2]], itemStr[15][swipeType[3]]}, new int[4],
+                new int[] {ST_GESTURE_LEFT, ST_GESTURE_RIGHT, ST_GESTURE_UP, ST_GESTURE_DOWN});
+        Utils.addSection(headers, cells, getString(R.string.title_hardware), getResources().getStringArray(R.array.item_hardware),
+                new int[] {1, 0, 0, 0},
+                new Object[] {screenOn, itemStr[10][vibrateType], itemStr[11][vibrateTime], itemStr[9][screenOri]},
+                new int[4],
+                new int[] {ST_SCREEN_ON, ST_VIBRATE, ST_VIBRATE_TIME, ST_SCREEN_ORIENTATION});
+        //Log.w("dct", ""+cells.size());
+        stAdapter = new SettingAdapter(this, headers, cells);
+        rvSetting = findViewById(R.id.lv_settings);
+        rvSetting.setLayoutManager(new LinearLayoutManager(context));
+        rvSetting.setAdapter(stAdapter);
+        setupSettingSectionTabs(headers);
+        disableSmartTimerWcaSettings(false);
+        //rvSetting.setOnItemClickListener(mOnItemListener);
+
+        currentScramble = new Scrambler(sp);
+        currentScramble.setContext(context);
+        timer = new DCTTimer(this);
+
+        //进度条
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        progressDialog.setCancelable(false);
+        //震动器
+        vibrator = (Vibrator) getSystemService(Service.VIBRATOR_SERVICE);
+
+        app.initSession(context);
+        result = app.getResult();
+        sessionManager = app.getSessionManager();
+        if (sessionIdx >= sessionManager.getSessionLength()) sessionIdx = 0;
+        getResult();
+        btnSession.setText(sessionManager.getSessionName(sessionIdx));
+        btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+        result.calcAvg();
+        if (multiPhase != 0) {
+            result.calcMpMean();
+        }
+        if (sortType != 0) result.sortResult();
+
+        Utils.setEgOll();
+        setViews();
+        setTextsColor();
+        setIconColor();
+        setResultTitle();
+
+        resAdapter = new TimesAdapter(this, result);
+        lvResult.setAdapter(resAdapter);
+        scrollResultToLatest();
+        inspectionAlertPlayer = new InspectionAlertPlayer(this);
+        setScramble();
+
+        tvTest = findViewById(R.id.tv_test);
+        tvStat.bringToFront();
+        tvTest.bringToFront();
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        bluetoothTools = new BluetoothTools(this);
+        bluetoothTools.setCubeStateChangedCallback(cubeStateChangeCallback);
+        bluetoothTools.setTimerStateCallback(timerStateCallback);
+        //getBluetoothAdapter();
+
+        // Register robot state change listener in onCreate so it's available from app start
+        GanRobotSessionState.setStateChangeListener(new GanRobotSessionState.OnRobotStateChangeListener() {
+            @Override
+            public void onRobotExecutionStart() {
+                String latestRawScramble = currentScramble == null || TextUtils.isEmpty(currentScramble.getScramble())
+                        ? ""
+                        : currentScramble.getScramble();
+                String latestTargetState = currentScramble == null || TextUtils.isEmpty(currentScramble.getCubeState())
+                        ? ""
+                        : currentScramble.getCubeState();
+                SmartCube activeCube = getActiveSmartCube();
+                String latestCubeState = activeCube == null ? "" : activeCube.getCubeState();
+                GanRobotSessionState.setLatestMainScramble(latestRawScramble);
+                GanRobotSessionState.setLatestMainTargetState(latestTargetState);
+                GanRobotSessionState.setLatestSmartCubeState(latestCubeState);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        clearSmartCubeScrambleCache();
+                    }
+                });
+            }
+
+            @Override
+            public void onRobotExecutionEnd() {
+                runOnUiThread(() -> {
+                    // Force a state check after robot execution completes
+                    refreshSmartCubeStateUi();
+                    // refreshSmartCubeStateUi() may call completeSmartCubeScramble() and set this flag to true again.
+                    // Robot-finished path is not a real "current move", so keep user's first manual turn effective.
+                    smartCubeSkipStartForCurrentMove = false;
+                });
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        GanRobotBleClient.maybeAutoConnect(this);
+        if (sensorManager != null && sensor != null) {
+            sensorManager.registerListener(mSensorEventListener, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+        if (stackmat != null) {
+            stackmat.setSamplingRate(samplingRate);
+            stackmat.setDataFormat(dataFormat);
+            stackmat.start();
+        }
+        if (smartCube3DView != null) {
+            smartCube3DView.onResume();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (timer.getTimerState() == DCTTimer.RUNNING) {
+            timer.timeEnd = SystemClock.uptimeMillis();
+            timer.count();
+            setVisibility(true);
+            timer.setTimerState(0);
+            if (!screenOn) releaseWakeLock();
+        }
+        if (sensorManager != null && sensor != null) {
+            sensorManager.unregisterListener(mSensorEventListener, sensor);
+        }
+        if (stackmat != null) {
+            stackmat.stop();
+            //stackmat = null;
+        }
+        if (smartCube3DView != null) {
+            smartCube3DView.onPause();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.w("dct", "ondestroy");
+        if (inspectionAlertPlayer != null) {
+            inspectionAlertPlayer.release();
+            inspectionAlertPlayer = null;
+        }
+        GanRobotSessionState.setStateChangeListener(null);
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        SharedPreferences.Editor edit = sp.edit();
+        edit.putInt("sel", scrambleIdx >> 5);
+        edit.putInt("sel2", scrambleIdx & 0x1f);
+        edit.commit();
+        //Log.w("dct", "on save instance1");
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        Log.w("dct", "configure change " + newConfig.uiMode);
+        super.onConfigurationChanged(newConfig);
+        if (newConfig.uiMode != uiMode) {
+            uiMode = newConfig.uiMode;
+            if ((uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
+                Log.w("dct", "深色模式");
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                recreate();
+            } else {
+                Log.w("dct", "浅色模式");
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                recreate();
+            }
+        }
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+        int tvHeight = (int) (dm.heightPixels - 76 * dpi) / 2;
+        tvScramble.setHeight(tvHeight);
+        showScramble();
+        if (!useBgcolor) try {
+            setBackground();
+        } catch (Exception e) {
+            Toast.makeText(context, "Error: "+e.getMessage(), Toast.LENGTH_SHORT).show();
+        } catch (Error e) {
+            Toast.makeText(context, "Error: "+e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {   //按返回键
+        if (timer.getTimerState() == DCTTimer.RUNNING) {
+            timer.timeEnd = SystemClock.uptimeMillis();
+            timer.count();
+            setVisibility(true);
+            if (!wca || currentScramble.isBlindfoldScramble()) { penaltyTime = 0; isDNF = false; }
+            save((int) timer.time);
+            timer.setTimerState(0);
+            if (!screenOn) releaseWakeLock();
+        } else if (timer.getTimerState() == DCTTimer.INSPECTING) {
+            timer.stopInspect();
+            setTimerText("0" + (decimalMark == 0 ? "." : ",") + (timerAccuracy == 0 ? "00" : "000"));
+            setVisibility(true);
+            if (!screenOn) releaseWakeLock();
+        } else if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else if (curTab != 0) {
+            //toolbar.setTitle(R.string.tab_timer);
+            curTab = 0;
+            tabHost.setCurrentTab(0);
+            rbTimer.setChecked(true);
+            navigationView.getMenu().getItem(0).setChecked(true);
+        } else if ((System.currentTimeMillis() - exitTime) > 2000) {
+            Toast.makeText(context, getString(R.string.exit_tip), Toast.LENGTH_SHORT).show();
+            exitTime = System.currentTimeMillis();
+        } else {
+            SharedPreferences.Editor edit = sp.edit();
+            edit.putInt("sel", scrambleIdx >> 5);
+            edit.putInt("sel2", scrambleIdx & 0x1f);
+            edit.commit();
+            app.closeDb();
+            super.onBackPressed();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        //System.out.println("onPrepareMenu "+curTab);
+        if (curTab == 0) {
+            menu.findItem(R.id.action_quick_smart_cube).setVisible(true);
+            menu.findItem(R.id.action_scramble).setVisible(true);
+            menu.findItem(R.id.action_import_scramble).setVisible(true);
+            menu.findItem(R.id.action_export_scramble).setVisible(true);
+            menu.findItem(R.id.action_last).setVisible(true);
+        } else {
+            menu.findItem(R.id.action_quick_smart_cube).setVisible(false);
+            menu.findItem(R.id.action_scramble).setVisible(false);
+            menu.findItem(R.id.action_import_scramble).setVisible(false);
+            menu.findItem(R.id.action_export_scramble).setVisible(false);
+            menu.findItem(R.id.action_last).setVisible(false);
+        }
+        if (curTab == 1) {
+            menu.findItem(R.id.action_rename).setVisible(true);
+            menu.findItem(R.id.action_sort).setVisible(true);
+            menu.findItem(R.id.action_histogram).setVisible(true);
+            menu.findItem(R.id.action_graph).setVisible(true);
+            menu.findItem(R.id.action_daily).setVisible(true);
+        } else {
+            menu.findItem(R.id.action_rename).setVisible(false);
+            menu.findItem(R.id.action_sort).setVisible(false);
+            menu.findItem(R.id.action_histogram).setVisible(false);
+            menu.findItem(R.id.action_graph).setVisible(false);
+            menu.findItem(R.id.action_daily).setVisible(false);
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+        final LayoutInflater factory;
+        switch (id) {
+            case R.id.action_quick_smart_cube:
+                quickConnectBluetoothTimingDevice();
+                break;
+            case R.id.action_scramble:  //打乱详情
+                ScrambleDetailDialog scrambleDialog = ScrambleDetailDialog.newInstance(currentScramble.getScramble(), currentScramble.getScrambleLen(), currentScramble.is333Scramble() ? 3 : 0);
+                scrambleDialog.show(getSupportFragmentManager(), "ScrambleDetail");
+                break;
+            case R.id.action_import_scramble:   //导入打乱
+                ImportScrambleDialog dialog = ImportScrambleDialog.newInstance();
+                dialog.show(getSupportFragmentManager(), "ImportScramble");
+                break;
+            case R.id.action_export_scramble:   //导出打乱
+                ExportScrambleDialog.newInstance(btnScramble.getText().toString()).show(getSupportFragmentManager(), "ExportScramble");
+                break;
+            case R.id.action_last:  //上一次成绩
+                if (result.length() != 0) {
+                    showDetail(result.length() - 1);
+                }
+                break;
+            case R.id.action_rename:    //分组命名
+                factory = LayoutInflater.from(context);
+                view = factory.inflate(R.layout.dialog_session_name, null);
+                editText = view.findViewById(R.id.edit_name);
+                String name = sessionManager.getSession(sessionIdx).getName();
+                if (name.length() == 0) {
+                    if (sessionIdx == 0)
+                        editText.setHint(R.string.default_session);
+                    else editText.setHint(getString(R.string.session) + (sessionIdx + 1));
+                } else {
+                    editText.setText(name);
+                    editText.setSelection(name.length());
+                }
+                new AlertDialog.Builder(context).setTitle(R.string.session_name).setView(view)
+                        .setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                String name = editText.getText().toString();
+                                sessionManager.setSessionName(sessionIdx, name);
+                                if (name.length() == 0) {
+                                    if (sessionIdx == 0)
+                                        btnSession.setText(R.string.default_session);
+                                    else btnSession.setText(getString(R.string.session) + (sessionIdx + 1));
+                                } else btnSession.setText(name);
+                                Utils.hideKeyboard(editText);
+                            }
+                        }).setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        Utils.hideKeyboard(editText);
+                    }
+                }).show();
+                //editText.requestFocus();
+                Utils.showKeyboard(editText);
+                break;
+            case R.id.action_sort:  //TODO 排序方式
+                new AlertDialog.Builder(context).setTitle(R.string.action_sort).setSingleChoiceItems(multiPhase > 0 ? R.array.opt_sort_order2 : R.array.opt_sort_order, getSortOptionIndex(), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                        llSearch.setVisibility(View.GONE);
+                        llSession.setVisibility(View.VISIBLE);
+                        Utils.hideKeyboard(editSearch);
+                        sortType = getSortTypeFromOption(i);
+                        if (isGlobalResultOrder(sortType)) {
+                            resultOrderType = sortType;
+                            setPref("resultorder", resultOrderType);
+                        }
+                        //Log.w("dct", "sort" + i);
+                        if (sortType != 0) {
+                            result.sortResult();
+                        }
+                        setResultTitle();
+                        resAdapter.setHighlight(-1);
+                        if (isGlobalResultOrder(sortType)) scrollResultToLatest();
+                        else lvResult.setSelection(0);
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case R.id.action_histogram: //成绩分布直方图
+                factory = LayoutInflater.from(context);
+                view = factory.inflate(R.layout.dialog_graph, null);
+                view.findViewById(R.id.layout).setVisibility(View.GONE);
+                ImageView iv = view.findViewById(R.id.image_view);
+                Bitmap bm = Bitmap.createBitmap(dip300, (int) (dip300 * 1.2), Bitmap.Config.ARGB_8888);
+                Canvas c = new Canvas(bm);
+                //c.drawColor(0);
+                Paint p = new Paint();
+                p.setAntiAlias(true);
+                Graph.drawHist(context, result, dip300, p, c);
+                iv.setImageBitmap(bm);
+                new AlertDialog.Builder(context).setView(view).setNegativeButton(R.string.btn_close, null).show();
+                break;
+            case R.id.action_graph: //折线图
+                factory = LayoutInflater.from(context);
+                view = factory.inflate(R.layout.dialog_graph, null);
+                iv = view.findViewById(R.id.image_view);
+                TextView tv1 = view.findViewById(R.id.tv_trend1);
+                if (avg1Type == 0) tv1.setText("ao" + avg1len);
+                else tv1.setText("mo" + avg1len);
+                TextView tv2 = view.findViewById(R.id.tv_trend2);
+                if (avg2Type == 0) tv2.setText("ao" + avg2len);
+                else tv2.setText("mo" + avg2len);
+                bm = Bitmap.createBitmap(dip300, (int) (dip300 * 0.9), Bitmap.Config.ARGB_8888);
+                c = new Canvas(bm);
+                p = new Paint();
+                p.setAntiAlias(true);
+                Graph.drawGraph(context, result, dip300, p, c);
+                iv.setImageBitmap(bm);
+                new AlertDialog.Builder(context).setView(view)
+                        .setNegativeButton(R.string.btn_close, null).show();
+                break;
+            case R.id.action_daily:
+                Intent intent = new Intent(MainActivity.this, GraphActivity.class);
+                startActivity(intent);
+                break;
+            case R.id.action_share: //分享
+                intent = new Intent(Intent.ACTION_SEND);
+                intent.setType("text/plain");	//纯文本
+                intent.putExtra(Intent.EXTRA_SUBJECT, "SHARE");
+                intent.putExtra(Intent.EXTRA_TEXT, Utils.getShareContent(this));
+                startActivity(Intent.createChooser(intent, getTitle()));
+                break;
+            case R.id.action_exit:  //退出
+                SharedPreferences.Editor edit = sp.edit();
+                edit.putInt("sel", scrambleIdx >> 5);
+                edit.putInt("sel2", scrambleIdx & 0x1f);
+                edit.commit();
+                app.closeDb();
+                this.finish();
+                android.os.Process.killProcess(android.os.Process.myPid());
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @SuppressWarnings("StatementWithEmptyBody")
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        switch (item.getItemId()) {
+            case R.id.nav_import_export:   //导入导出数据库
+                ImportExportDialog.newInstance().show(getSupportFragmentManager(), "ImportExport");
+                break;
+            case R.id.nav_stackmat:
+                if (Build.VERSION.SDK_INT > 22) {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+                            != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.RECORD_AUDIO },
+                                8);
+                        break;
+                    }
+                }
+                Intent intent = new Intent(context, TestActivity.class);
+                startActivity(intent);
+                break;
+            case R.id.nav_gan_robot:
+                intent = new Intent(context, GanRobotActivity.class);
+                // Use the raw scramble formula from currentScramble, not the display text from tvScramble
+                // because tvScramble may contain manual move errors shown as red text
+                String rawScramble = currentScramble == null || TextUtils.isEmpty(currentScramble.getScramble())
+                        ? ""
+                        : currentScramble.getScramble();
+                intent.putExtra(GanRobotActivity.EXTRA_PREFILL_SCRAMBLE, rawScramble);
+                startActivity(intent);
+                break;
+            case R.id.nav_algorithm:    //公式库
+                intent = new Intent(context, WebActivity.class);
+                String web = "https://www.speedcubedb.com/";
+                intent.putExtra("web", web);
+                intent.putExtra("title", "Speed Cube Database");
+                startActivity(intent);
+                break;
+            case R.id.nav_algcubing: //alg.cubing
+                intent = new Intent(context, WebActivity.class);
+                web = "https://alg.cubing.net";
+                intent.putExtra("web", web);
+                intent.putExtra("title", "alg.cubing.net");
+                startActivity(intent);
+                break;
+            case R.id.nav_wca:
+                intent = new Intent(context, WebActivity.class);
+                web = "https://www.worldcubeassociation.org/";
+                intent.putExtra("web", web);
+                intent.putExtra("title", "World Cube Association");
+                startActivity(intent);
+                break;
+            case R.id.nav_cubing:
+                intent = new Intent(context, WebActivity.class);
+                web = "https://cubingchina.com/";
+                intent.putExtra("web", web);
+                intent.putExtra("title", getString(R.string.menu_cubing));
+                startActivity(intent);
+                break;
+            case R.id.nav_test:
+                //随机生成成绩
+                result.insert(10000, 12000, 4000000, currentScramble.getScramble());
+                btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+                result.calcAvg();
+                if (multiPhase > 0) result.calcMpMean();
+                if (sortType != 0) result.sortResult();
+                resAdapter.reload();
+                lvResult.setSelection(sortType == SORT_LATEST_FIRST ? 0 : resAdapter.getCount() - 1);
+                newScramble();
+                setStatsLabel();
+                break;
+            case R.id.nav_about:
+                new AlertDialog.Builder(context).setIcon(R.mipmap.ic_launcher).setTitle(R.string.app_name)
+                        .setMessage(String.format(getString(R.string.about_msg), Utils.getVersionName(context)))
+                        .setPositiveButton(R.string.btn_upgrade, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                checkAppUpdate();
+                            }
+                        })
+                        .setNegativeButton(R.string.btn_close, null).show();
+                break;
+        }
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
+    private void checkAppUpdate() {
+        final ProgressDialog progressDialog = new ProgressDialog(context);
+        progressDialog.setMessage(getString(R.string.check_update_progress));
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        new CheckUpdateTask(progressDialog).execute();
+    }
+
+    private void showUpdateResult(UpdateInfo updateInfo) {
+        if (updateInfo == null || updateInfo.error) {
+            Toast.makeText(context, R.string.check_update_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int currentVersionCode = Utils.getVersion(context);
+        if (updateInfo.versionCode <= currentVersionCode) {
+            Toast.makeText(context, R.string.check_update_latest, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        StringBuilder message = new StringBuilder();
+        message.append(String.format(getString(R.string.update_available_msg), updateInfo.versionName));
+        if (!TextUtils.isEmpty(updateInfo.notes)) {
+            message.append("\n\n").append(updateInfo.notes);
+        }
+        new AlertDialog.Builder(context)
+                .setTitle(R.string.new_version)
+                .setMessage(message.toString())
+                .setPositiveButton(R.string.btn_download, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        openUrl(TextUtils.isEmpty(updateInfo.apkUrl) ? updateInfo.releaseUrl : updateInfo.apkUrl);
+                    }
+                })
+                .setNegativeButton(R.string.btn_close, null)
+                .show();
+    }
+
+    private void openUrl(String url) {
+        if (TextUtils.isEmpty(url)) {
+            Toast.makeText(context, R.string.check_update_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(context, R.string.check_update_failed, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (curTab == 0 && enterTime == 1 && inputTimeDialog == null && KeypadView.isManualTimeInputKey(event)) {
+            inputTime(event);
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private static class UpdateInfo {
+        int versionCode;
+        String versionName;
+        String releaseUrl;
+        String apkUrl;
+        String notes;
+        String notesUrl;
+        boolean error;
+    }
+
+    private class CheckUpdateTask extends AsyncTask<Void, Void, UpdateInfo> {
+        private final ProgressDialog progressDialog;
+
+        CheckUpdateTask(ProgressDialog progressDialog) {
+            this.progressDialog = progressDialog;
+        }
+
+        @Override
+        protected UpdateInfo doInBackground(Void... voids) {
+            try {
+                URL updateUrl = new URL(UPDATE_INFO_URL);
+                String updateJson = fetchText(updateUrl);
+                JSONObject json = new JSONObject(updateJson);
+                UpdateInfo info = new UpdateInfo();
+                info.versionCode = json.optInt("versionCode", 0);
+                info.versionName = json.optString("versionName", "");
+                info.releaseUrl = json.optString("releaseUrl", "");
+                info.apkUrl = json.optString("apkUrl", "");
+                info.notes = json.optString("notes", "");
+                info.notesUrl = json.optString("notesUrl", "");
+                String changelogNotes = fetchChangelogNotes(updateUrl, info);
+                if (!TextUtils.isEmpty(changelogNotes)) info.notes = changelogNotes;
+                return info;
+            } catch (Exception e) {
+                UpdateInfo info = new UpdateInfo();
+                info.error = true;
+                return info;
+            }
+        }
+
+        private String fetchChangelogNotes(URL updateUrl, UpdateInfo info) {
+            String notesUrl = info.notesUrl;
+            if (TextUtils.isEmpty(notesUrl) && !TextUtils.isEmpty(info.versionName)) {
+                notesUrl = "changelog/" + info.versionName + ".md";
+            }
+            if (TextUtils.isEmpty(notesUrl)) return "";
+            try {
+                String markdown = fetchText(new URL(updateUrl, notesUrl));
+                return parseChangelogMarkdown(markdown);
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
+        private String parseChangelogMarkdown(String markdown) {
+            if (TextUtils.isEmpty(markdown)) return "";
+            String body = markdown.replaceFirst("(?s)^---\\s*(?:\\r?\\n).*?(?:\\r?\\n)---\\s*", "");
+            StringBuilder notes = new StringBuilder();
+            String[] lines = body.split("\\r?\\n");
+            for (String line : lines) {
+                String item = line.trim();
+                if (TextUtils.isEmpty(item)) continue;
+                if (item.matches("^([-*+]|\\d+\\.)\\s+.*")) {
+                    item = item.replaceFirst("^([-*+]|\\d+\\.)\\s+", "").trim();
+                    if (TextUtils.isEmpty(item)) continue;
+                    if (notes.length() > 0) notes.append('\n');
+                    notes.append("- ").append(item);
+                }
+            }
+            return notes.length() > 0 ? notes.toString() : body.trim();
+        }
+
+        private String fetchText(URL url) throws IOException {
+            HttpURLConnection connection = null;
+            BufferedReader reader = null;
+            try {
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setConnectTimeout(10000);
+                connection.setReadTimeout(15000);
+                connection.setUseCaches(false);
+                connection.connect();
+                if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                    throw new IOException("HTTP " + connection.getResponseCode());
+                }
+                reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
+                StringBuilder builder = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    builder.append(line).append('\n');
+                }
+                return builder.toString();
+            } finally {
+                if (reader != null) {
+                    try {
+                        reader.close();
+                    } catch (IOException ignored) {
+                    }
+                }
+                if (connection != null) connection.disconnect();
+            }
+        }
+
+        @Override
+        protected void onPostExecute(UpdateInfo updateInfo) {
+            if (progressDialog.isShowing()) progressDialog.dismiss();
+            showUpdateResult(updateInfo);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_ENABLE_BLUETOOTH) {
+            boolean openDialogAfterBluetoothEnable = pendingBleDialogAfterBluetoothEnable;
+            clearPendingBleEnableAction();
+            if (resultCode == RESULT_OK && bluetoothTools != null && bluetoothTools.isBluetoothEnabled()) {
+                if (openDialogAfterBluetoothEnable) {
+                    continueBleScanFlow();
+                } else if (dialog != null && dialog.isShowing()) {
+                    startBleScanInternal();
+                }
+            } else {
+                Toast.makeText(context, R.string.ble_bluetooth_disabled, Toast.LENGTH_SHORT).show();
+            }
+        } else if (requestCode == REQUEST_BACKGROUND_IMAGE) { //背景图片
+            if (resultCode == RESULT_OK && data != null) {
+                try {
+                    Uri uri = data.getData();
+                    if (uri != null) {
+                        int takeFlags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        try {
+                            getContentResolver().takePersistableUriPermission(uri, takeFlags & Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        } catch (SecurityException ignored) { }
+                        picUri = uri.toString();
+                        picPath = "";
+                        setPref("picuri", picUri);
+                        setPref("picpath", "");
+                        if (!useBgcolor)
+                            setBackground();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } catch (Error e) {
+                    e.printStackTrace();
+                }
+            }
+        } else if (requestCode == 2) {  //更改分组
+            boolean mod = data.getBooleanExtra("mod", false);
+            if (mod) {
+                sessionIdx = data.getIntExtra("select", 0);
+                changeSession();
+            }
+        } else if (requestCode == 3) {    //显示详情
+            statDetail = null;
+        } else if (requestCode == REQUEST_IMPORT_DATABASE && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                app.closeDb();
+                Utils.importDB(this, uri, handler);
+            }
+        } else if (requestCode == REQUEST_EXPORT_DATABASE && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                Utils.exportDB(this, uri, handler);
+            }
+        } else if (requestCode == REQUEST_IMPORT_SCRAMBLE && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                try {
+                    importScramble(Utils.readText(this, uri));
+                } catch (IOException e) {
+                    Toast.makeText(context, getString(R.string.file_error), Toast.LENGTH_SHORT).show();
+                }
+            }
+        } else if (requestCode == REQUEST_EXPORT_SCRAMBLE && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                Utils.saveScramble(context, progressDialog, handler, currentScramble, uri, pendingScrambleExportCount);
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!areAllPermissionsGranted(grantResults)) {
+                clearPendingBlePermissionAction();
+                Toast.makeText(context, R.string.permission_deny, Toast.LENGTH_SHORT).show();
+            } else if (requestCode == REQUEST_BLE_PERMISSION) {  //蓝牙
+                boolean openDialogAfterPermission = pendingBleDialogAfterPermission;
+                boolean startScanAfterPermission = pendingBleScanAfterPermission;
+                clearPendingBlePermissionAction();
+                if (openDialogAfterPermission) {
+                    continueBleScanFlow();
+                } else if (startScanAfterPermission && dialog != null && dialog.isShowing()) {
+                    startBleScanInternal();
+                }
+            } else if (requestCode == 7) {  //Stackmat
+                startStackmat();
+            } else if (requestCode == 8) {
+                Intent intent = new Intent(this, TestActivity.class);
+                startActivity(intent);
+            }
+        }
+    }
+
+    private boolean areAllPermissionsGranted(@NonNull int[] grantResults) {
+        if (grantResults.length == 0) {
+            return false;
+        }
+        for (int grantResult : grantResults) {
+            if (grantResult != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String[] getBlePermissions() {
+        if (Build.VERSION.SDK_INT >= ANDROID_API_S) {
+            return new String[] {
+                    PERMISSION_BLUETOOTH_SCAN,
+                    PERMISSION_BLUETOOTH_CONNECT,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+            };
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return new String[] { Manifest.permission.ACCESS_FINE_LOCATION };
+        }
+        return new String[0];
+    }
+
+    private boolean hasPermissions(String[] permissions) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true;
+        }
+        for (String permission : permissions) {
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean ensureBlePermissions() {
+        return ensureBlePermissions(false, false);
+    }
+
+    private boolean ensureBlePermissions(boolean openDialogAfterPermission, boolean startScanAfterPermission) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true;
+        }
+        String[] blePermissions = getBlePermissions();
+        if (blePermissions.length == 0 || hasPermissions(blePermissions)) {
+            clearPendingBlePermissionAction();
+            return true;
+        }
+        pendingBleDialogAfterPermission = openDialogAfterPermission;
+        pendingBleScanAfterPermission = startScanAfterPermission;
+        ActivityCompat.requestPermissions(this, blePermissions, REQUEST_BLE_PERMISSION);
+        return false;
+    }
+
+    private void clearPendingBlePermissionAction() {
+        pendingBleDialogAfterPermission = false;
+        pendingBleScanAfterPermission = false;
+    }
+
+    private boolean ensureBluetoothEnabled(boolean openDialogAfterBluetoothEnable) {
+        if (!bluetoothTools.initBluetoothAdapter()) {
+            Toast.makeText(context, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (bluetoothTools.isBluetoothEnabled()) {
+            clearPendingBleEnableAction();
+            return true;
+        }
+        pendingBleDialogAfterBluetoothEnable = openDialogAfterBluetoothEnable;
+        Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        startActivityForResult(intent, REQUEST_ENABLE_BLUETOOTH);
+        return false;
+    }
+
+    private void clearPendingBleEnableAction() {
+        pendingBleDialogAfterBluetoothEnable = false;
+    }
+
+    private boolean isLocationServiceEnabled() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true;
+        }
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (locationManager == null) {
+            return false;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return locationManager.isLocationEnabled();
+        }
+        try {
+            int mode = Settings.Secure.getInt(getContentResolver(), Settings.Secure.LOCATION_MODE);
+            return mode != Settings.Secure.LOCATION_MODE_OFF;
+        } catch (Settings.SettingNotFoundException e) {
+            return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                    || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        }
+    }
+
+    private void showLocationServiceDisabledHint() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.status)
+                .setMessage(R.string.ble_location_disabled)
+                .setPositiveButton(R.string.btn_open, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        openLocationSettings();
+                    }
+                })
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show();
+    }
+
+    private void openLocationSettings() {
+        Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
+        } else {
+            Toast.makeText(this, R.string.ble_location_disabled, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void startStackmat() {
+        if (stackmat == null) {
+            stackmat = new Stackmat(this, samplingRate, dataFormat);
+        }
+        setTimerText("---");
+        stackmat.start();
+    }
+
+    private void openBleScanDialog() {
+        View v = LayoutInflater.from(this).inflate(R.layout.dialog_bluetooth, null);
+        TextView titleView = v.findViewById(R.id.tv_title);
+        if (titleView != null) {
+            titleView.setText(bluetoothTools.isScanningAllTimingDevices()
+                    ? R.string.select_bluetooth_timing_device
+                    : (isSmartTimerMode() ? R.string.select_smart_timer : R.string.select_smart_cube));
+        }
+        btnScan = v.findViewById(R.id.btn_scan);
+        btnScan.setOnClickListener(mOnClickListener);
+        pbScan = v.findViewById(R.id.progress);
+        RecyclerView rvDevice = v.findViewById(R.id.rv_device);
+        adapter = new BLEDeviceAdapter(this, new ArrayList<BLEDevice>());
+        rvDevice.setLayoutManager(new LinearLayoutManager(this));
+        rvDevice.setAdapter(adapter);
+        dialog = new AlertDialog.Builder(this).setView(v)
+                .setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        clearPendingBlePermissionAction();
+                        clearPendingBleEnableAction();
+                        handler.removeCallbacks(stopBleScanRunnable);
+                        bluetoothTools.stopScan();
+                        bluetoothTools.setScanAllTimingDevices(false);
+                        bluetoothTools.disconnect();
+                        fallbackBleModeToTimer();
+                    }
+                }).setCancelable(false).show();
+        startBleScanInternal();
+    }
+
+    private void startBleScanInternal() {
+        if (!ensureBluetoothEnabled(false)) {
+            return;
+        }
+        if (btnScan != null) btnScan.setVisibility(View.GONE);
+        if (pbScan != null) pbScan.setVisibility(View.VISIBLE);
+        bluetoothTools.startScan();
+        handler.removeCallbacks(stopBleScanRunnable);
+        handler.postDelayed(stopBleScanRunnable, 20000);
+    }
+
+    private void quickConnectBluetoothTimingDevice() {
+        if (curTab != 0) {
+            curTab = 0;
+            tabHost.setCurrentTab(0);
+            rbTimer.setChecked(true);
+        }
+        if (stackmat != null) {
+            stackmat.stop();
+            stackmat = null;
+        }
+        bluetoothTools.setScanAllTimingDevices(true);
+        startBleScanFlow();
+    }
+
+    private void startBleScanFlow() {
+        if (Build.VERSION.SDK_INT < 18 || !getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(context, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!isLocationServiceEnabled()) {
+            showLocationServiceDisabledHint();
+            return;
+        }
+        if (!ensureBlePermissions(true, false)) {
+            return;
+        }
+        continueBleScanFlow();
+    }
+
+    private void continueBleScanFlow() {
+        clearSmartCubeGyroState();
+        bluetoothTools.disconnect();
+        setTimerText(getIdleTimerText());
+        if (ensureBluetoothEnabled(true)) {
+            openBleScanDialog();
+        }
+    }
+
+    private boolean isSmartCubeDeviceType(int deviceType) {
+        return deviceType == BLEDevice.TYPE_GANI_CUBE
+                || deviceType == BLEDevice.TYPE_MOYU32_CUBE
+                || deviceType == BLEDevice.TYPE_QIYI_CUBE;
+    }
+
+    private boolean isSmartTimerDeviceType(int deviceType) {
+        return deviceType == BLEDevice.TYPE_QIYI_TIMER;
+    }
+
+    private boolean isSmartCubeMode() {
+        return enterTime == 3;
+    }
+
+    private boolean isSmartTimerMode() {
+        return enterTime == 4;
+    }
+
+    private boolean isSmartCubeGyroSupportedDevice() {
+        synchronized (smartCubeGyroLock) {
+            return hasSmartCubeGyroCapability;
+        }
+    }
+
+    private boolean shouldFollowSmartCubeGyro() {
+        return smartCubeGyroFollow && isSmartCubeGyroSupportedDevice();
+    }
+
+    private SmartCube getActiveSmartCube() {
+        if (!isSmartCubeMode() || bluetoothTools == null || !isSmartCubeDeviceType(bleDeviceType)) {
+            return null;
+        }
+        return bluetoothTools.getCube();
+    }
+
+    public SmartCube getSmartCubeForUi() {
+        return getActiveSmartCube();
+    }
+
+    private boolean shouldShowTimerPageCubeState() {
+        return getActiveSmartCube() != null;
+    }
+
+    private boolean isTimerTabActive() {
+        return curTab == 0 && (tabHost == null || tabHost.getCurrentTab() == 0);
+    }
+
+    private String getIdleTimerText() {
+        return "0" + (decimalMark == 0 ? "." : ",") + (timerAccuracy == 0 ? "00" : "000");
+    }
+
+    public void showReadyTimerText() {
+        if (enterTime == 0) {
+            setTimerText(getIdleTimerText());
+        }
+    }
+
+    private void disableSmartTimerWcaSettings(boolean showToast) {
+        if (!isSmartTimerMode()) {
+            return;
+        }
+        if (wca) {
+            wca = false;
+            setPref("wca", false);
+        }
+        if (inspectionAlert) {
+            inspectionAlert = false;
+            setPref("wcainsp", false);
+        }
+        if (stAdapter != null) {
+            stAdapter.setCheck(ST_WCA, false);
+            stAdapter.setCheck(ST_INSPECTION_ALERT, false);
+        }
+        if (showToast) {
+            Toast.makeText(context, R.string.smart_timer_wca_disabled, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void applySmartTimerReadyLayout() {
+        if (!isSmartTimerMode()) {
+            return;
+        }
+        setVisibility(true);
+        setReadyHoldUi(true);
+        tvMulPhase.setText("");
+    }
+
+    private void applySmartTimerRunningLayout() {
+        if (!isSmartTimerMode()) {
+            return;
+        }
+        clearReadyHoldUiState();
+        setVisibility(false);
+    }
+
+    private void resetSmartTimerLayout() {
+        if (!isSmartTimerMode()) {
+            return;
+        }
+        clearReadyHoldUiState();
+        setVisibility(true);
+    }
+
+    private boolean shouldUseSmartCubeReadyLayout() {
+        return isSmartCubeMode()
+                && isSmartCubeDeviceType(bleDeviceType)
+                && timer.getTimerState() == DCTTimer.READY
+                && canStart;
+    }
+
+    private void applySmartCubeReadyLayout() {
+        if (!shouldUseSmartCubeReadyLayout()) {
+            return;
+        }
+        setVisibility(true);
+        setReadyHoldUi(true);
+        tvMulPhase.setText("");
+    }
+
+    private void resetSmartCubeReadyLayout() {
+        if (!isSmartCubeMode() || !isSmartCubeDeviceType(bleDeviceType)) {
+            return;
+        }
+        clearReadyHoldUiState();
+        if (timer.getTimerState() != DCTTimer.RUNNING && timer.getTimerState() != DCTTimer.INSPECTING) {
+            setVisibility(true);
+        }
+    }
+
+    private void clearSmartCubeScrambleCache() {
+        smartCubeScrambleCache = "";
+        smartCubeScrambleProgress = 0;
+        smartCubeScrambleHiddenPrefix = 0;
+        smartCubeScramblePendingMove = null;
+        smartCubeScrambleMoves.clear();
+        smartCubeScrambleDisplayMoves.clear();
+        smartCubeScrambleStates.clear();
+        clearSmartCubeCorrectionSuggestion();
+    }
+
+    private void clearSmartCubeCorrectionSuggestion() {
+        smartCubeCorrectionBaseProgress = -1;
+        smartCubeCorrectionBasePendingMove = null;
+        smartCubeCorrectionMoves.clear();
+        smartCubeDeviationMoves.clear();
+        smartCubeCorrectionLocked = false;
+        smartCubeLastRestoreHintTime = 0L;
+    }
+
+    private void ensureSmartCubeScrambleCache() {
+        if (currentScramble == null || !currentScramble.is333Scramble() || TextUtils.isEmpty(currentScramble.getScramble())) {
+            clearSmartCubeScrambleCache();
+            return;
+        }
+        String scramble = currentScramble.getScramble().replace('\n', ' ').trim();
+        String cacheKey = buildSmartCubeScrambleCacheKey(scramble);
+        if (TextUtils.equals(smartCubeScrambleCache, cacheKey)) {
+            return;
+        }
+        clearSmartCubeScrambleCache();
+        smartCubeScrambleCache = cacheKey;
+        if (TextUtils.isEmpty(scramble)) {
+            return;
+        }
+        String[] moves = scramble.split("\\s+");
+        String runningState = getSmartCubeScrambleStartState();
+        try {
+            for (String move : moves) {
+                if (TextUtils.isEmpty(move)) continue;
+                smartCubeScrambleMoves.add(move);
+                smartCubeScrambleDisplayMoves.add(getDisplayScrambleMove(move));
+                int moveIndex = parseScrambleMove(move);
+                if (moveIndex < 0) {
+                    clearSmartCubeScrambleCache();
+                    return;
+                }
+                runningState = Utils.applySmartCubeMove(runningState, moveIndex);
+                smartCubeScrambleStates.add(runningState);
+            }
+        } catch (Exception e) {
+            Log.e("dct", "构建智能魔方打乱进度失败", e);
+            clearSmartCubeScrambleCache();
+        }
+    }
+
+    private void updateSmartCubeScrambleProgress(SmartCube cube) {
+        updateSmartCubeScrambleProgress(cube, -1);
+    }
+
+    private void updateSmartCubeScrambleProgress(SmartCube cube, int latestMove) {
+        ensureSmartCubeScrambleCache();
+        if (cube == null || smartCubeScrambleStates.isEmpty()) {
+            smartCubeScrambleProgress = 0;
+            smartCubeScramblePendingMove = null;
+            clearSmartCubeCorrectionSuggestion();
+            return;
+        }
+        String cubeState = cube.getCubeState();
+        if (TextUtils.isEmpty(cubeState)) {
+            return;
+        }
+        String startFacelet = getSmartCubeScrambleStartState();
+        SmartCubeSequenceProgress progressInfo = resolveSequenceProgress(cubeState, startFacelet, smartCubeScrambleMoves, smartCubeScrambleStates);
+        if (progressInfo != null) {
+            smartCubeScrambleProgress = progressInfo.progress;
+            smartCubeScramblePendingMove = progressInfo.pendingMove;
+            if (smartCubeScrambleProgress == 0) {
+                smartCubeScrambleHiddenPrefix = 0;
+            }
+            clearSmartCubeCorrectionSuggestion();
+            return;
+        }
+        if (handleSmartCubeTrainingSolvedRestore(cubeState, startFacelet)) {
+            return;
+        }
+        if (TextUtils.equals(cubeState, startFacelet) || (!isSmartCubeTrainingScramble() && Utils.isSolvedIgnoringRotation(cubeState))) {
+            smartCubeScrambleProgress = 0;
+            smartCubeScrambleHiddenPrefix = 0;
+            smartCubeScramblePendingMove = null;
+            clearSmartCubeCorrectionSuggestion();
+            return;
+        }
+        if (smartCubeCorrectionLocked) {
+            smartCubeScrambleProgress = -1;
+            if (latestMove >= 0) {
+                showSmartCubeRestoreHintIfNeeded();
+            }
+            return;
+        }
+        if (latestMove >= 0) {
+            appendSmartCubeDeviationMove(latestMove);
+        }
+        smartCubeScrambleProgress = -1;
+    }
+
+    private boolean handleSmartCubeTrainingSolvedRestore(String cubeState, String startFacelet) {
+        if (!isSmartCubeTrainingScramble() || !Utils.isSolvedIgnoringRotation(cubeState)) {
+            return false;
+        }
+        smartCubeScrambleProgress = 0;
+        smartCubeScrambleHiddenPrefix = 0;
+        smartCubeScramblePendingMove = null;
+        clearSmartCubeCorrectionSuggestion();
+        if (!Utils.isSolvedIgnoringRotation(startFacelet)) {
+            refreshSmartCubeTrainingScrambleNow();
+        }
+        return true;
+    }
+
+    private CharSequence buildSmartCubeScrambleText() {
+        ensureSmartCubeScrambleCache();
+        if (smartCubeScrambleMoves.isEmpty()) {
+            return currentScramble.getScrambleWithHint(dm.heightPixels < dpi * 376);
+        }
+        int baseColor = APP.getTextColor();
+        int nextColor = 0xff00cc66;
+        int correctionColor = 0xffd85a3a;
+        if (smartCubeCorrectionLocked) {
+            SpannableStringBuilder lockedBuilder = new SpannableStringBuilder(getString(R.string.smart_cube_restore_first));
+            lockedBuilder.setSpan(new ForegroundColorSpan(correctionColor), 0, lockedBuilder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            return lockedBuilder;
+        }
+        if (smartCubeScrambleProgress < 0 && !smartCubeCorrectionMoves.isEmpty()) {
+            List<String> displayMoves = new ArrayList<>();
+            List<Boolean> correctionFlags = new ArrayList<>();
+            for (String move : smartCubeCorrectionMoves) {
+                appendDisplayMove(displayMoves, correctionFlags, getDisplayScrambleMove(move), true);
+            }
+            int resumeProgress = Math.max(0, smartCubeCorrectionBaseProgress);
+            if (!TextUtils.isEmpty(smartCubeCorrectionBasePendingMove)) {
+                appendDisplayMove(displayMoves, correctionFlags, getDisplayScrambleMove(smartCubeCorrectionBasePendingMove), false);
+                resumeProgress++;
+            }
+            for (int i = resumeProgress; i < smartCubeScrambleMoves.size(); i++) {
+                appendDisplayMove(displayMoves, correctionFlags, smartCubeScrambleDisplayMoves.get(i), false);
+            }
+            SpannableStringBuilder correctionBuilder = new SpannableStringBuilder();
+            boolean highlightedNext = false;
+            for (int i = 0; i < displayMoves.size(); i++) {
+                if (i > 0) correctionBuilder.append(' ');
+                int start = correctionBuilder.length();
+                correctionBuilder.append(displayMoves.get(i));
+                int end = correctionBuilder.length();
+                int spanColor = baseColor;
+                if (correctionFlags.get(i)) {
+                    spanColor = correctionColor;
+                } else if (!highlightedNext) {
+                    spanColor = nextColor;
+                    highlightedNext = true;
+                }
+                correctionBuilder.setSpan(new ForegroundColorSpan(spanColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            return appendSmartCubeScrambleHint(correctionBuilder);
+        }
+        SpannableStringBuilder builder = new SpannableStringBuilder();
+        if (smartCubeScrambleProgressStyle == 0) {
+            int doneColor = 0xffaaaaaa;
+            int displayStart = Math.max(0, Math.min(smartCubeScrambleHiddenPrefix, smartCubeScrambleMoves.size()));
+            for (int i = displayStart; i < smartCubeScrambleMoves.size(); i++) {
+                if (builder.length() > 0) builder.append(' ');
+                int start = builder.length();
+                builder.append(smartCubeScrambleDisplayMoves.get(i));
+                int end = builder.length();
+                int spanColor;
+                if (i < smartCubeScrambleProgress) {
+                    spanColor = doneColor;
+                } else if (i == smartCubeScrambleProgress && smartCubeScrambleProgress < smartCubeScrambleMoves.size()) {
+                    spanColor = nextColor;
+                } else {
+                    spanColor = baseColor;
+                }
+                builder.setSpan(new ForegroundColorSpan(spanColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            return appendSmartCubeScrambleHint(builder);
+        }
+        int startIndex = Math.max(0, smartCubeScrambleProgress);
+        if (!TextUtils.isEmpty(smartCubeScramblePendingMove) && startIndex < smartCubeScrambleMoves.size()) {
+            if (builder.length() > 0) builder.append(' ');
+            int start = builder.length();
+            builder.append(getDisplayScrambleMove(smartCubeScramblePendingMove));
+            int end = builder.length();
+            int spanColor = nextColor;
+            builder.setSpan(new ForegroundColorSpan(spanColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            startIndex++;
+        }
+        for (int i = startIndex; i < smartCubeScrambleMoves.size(); i++) {
+            if (builder.length() > 0) builder.append(' ');
+            int start = builder.length();
+            builder.append(smartCubeScrambleDisplayMoves.get(i));
+            int end = builder.length();
+            int spanColor = baseColor;
+            if (i == smartCubeScrambleProgress && TextUtils.isEmpty(smartCubeScramblePendingMove)
+                    && smartCubeScrambleProgress < smartCubeScrambleMoves.size()) {
+                spanColor = nextColor;
+            }
+            builder.setSpan(new ForegroundColorSpan(spanColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return appendSmartCubeScrambleHint(builder);
+    }
+
+    private CharSequence appendSmartCubeScrambleHint(SpannableStringBuilder builder) {
+        if (currentScramble == null || TextUtils.isEmpty(currentScramble.getHint())) {
+            return builder;
+        }
+        builder.append(currentScramble.getHint());
+        return builder;
+    }
+
+    private void appendSmartCubeDeviationMove(int move) {
+        String moveText = formatScrambleMove(move);
+        if (TextUtils.isEmpty(moveText) || smartCubeScrambleMoves.isEmpty()) {
+            return;
+        }
+        if (smartCubeCorrectionBaseProgress < 0) {
+            smartCubeCorrectionBaseProgress = Math.max(0, smartCubeScrambleProgress);
+            smartCubeCorrectionBasePendingMove = smartCubeScramblePendingMove;
+            if (smartCubeScrambleProgressStyle == 0) {
+                smartCubeScrambleHiddenPrefix = Math.max(smartCubeScrambleHiddenPrefix, smartCubeCorrectionBaseProgress);
+            }
+        }
+        appendCombinedMove(smartCubeDeviationMoves, moveText);
+        rebuildSmartCubeCorrectionMoves();
+        if (smartCubeCorrectionMoves.size() > SMART_CUBE_CORRECTION_LIMIT) {
+            lockSmartCubeCorrection();
+            showSmartCubeRestoreHintIfNeeded();
+        }
+    }
+
+    private String getSmartCubeScrambleStartState() {
+        if (currentScramble == null || TextUtils.isEmpty(currentScramble.getCubeState())
+                || TextUtils.isEmpty(currentScramble.getScramble())) {
+            return SOLVED_FACELET;
+        }
+        String[] moves = currentScramble.getScramble().replace('\n', ' ').trim().split("\\s+");
+        String startState = currentScramble.getCubeState();
+        for (int i = moves.length - 1; i >= 0; i--) {
+            int moveIndex = parseScrambleMove(moves[i]);
+            if (moveIndex < 0) {
+                return SOLVED_FACELET;
+            }
+            startState = Utils.applySmartCubeMove(startState, invertMoveIndex(moveIndex));
+        }
+        return startState;
+    }
+
+    private String buildSmartCubeScrambleCacheKey(String scramble) {
+        String targetState = currentScramble == null ? "" : currentScramble.getCubeState();
+        String startState = getSmartCubeScrambleStartState();
+        int orientation = isSmartCubeTrainingScramble() ? smartCubeTrainingOrientation : 0;
+        return scrambleIdx + "|" + orientation + "|" + startState + "|" + targetState + "|" + scramble;
+    }
+
+    private String getDisplayScrambleMove(String move) {
+        int moveIndex = parseScrambleMove(move);
+        if (moveIndex < 0 || !isSmartCubeTrainingScramble()) {
+            return move;
+        }
+        int displayMove = Utils.orientSmartCubeMove(moveIndex, smartCubeTrainingOrientation);
+        return formatScrambleMove(displayMove);
+    }
+
+    private void rebuildSmartCubeCorrectionMoves() {
+        smartCubeCorrectionMoves.clear();
+        for (int i = smartCubeDeviationMoves.size() - 1; i >= 0; i--) {
+            appendCombinedMove(smartCubeCorrectionMoves, invertScrambleMove(smartCubeDeviationMoves.get(i)));
+        }
+    }
+
+    private void lockSmartCubeCorrection() {
+        smartCubeCorrectionLocked = true;
+        smartCubeCorrectionBaseProgress = -1;
+        smartCubeCorrectionBasePendingMove = null;
+        smartCubeCorrectionMoves.clear();
+        smartCubeDeviationMoves.clear();
+    }
+
+    private void showSmartCubeRestoreHintIfNeeded() {
+        if (timer != null && timer.getTimerState() == DCTTimer.RUNNING) {
+            return;
+        }
+        long now = SystemClock.uptimeMillis();
+        if (now - smartCubeLastRestoreHintTime < SMART_CUBE_RESTORE_HINT_INTERVAL_MS) {
+            return;
+        }
+        smartCubeLastRestoreHintTime = now;
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            Toast.makeText(context, R.string.smart_cube_restore_first, Toast.LENGTH_SHORT).show();
+        } else {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(context, R.string.smart_cube_restore_first, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
+    private SmartCubeSequenceProgress resolveSequenceProgress(String cubeState, String startFacelet, List<String> moves, List<String> fullStates) {
+        if (TextUtils.isEmpty(cubeState) || TextUtils.isEmpty(startFacelet)) {
+            return null;
+        }
+        if (TextUtils.equals(cubeState, startFacelet)) {
+            return new SmartCubeSequenceProgress(0, null);
+        }
+        for (int i = 0; i < moves.size(); i++) {
+            String baseState = i == 0 ? startFacelet : fullStates.get(i - 1);
+            if (TextUtils.equals(cubeState, baseState)) {
+                return new SmartCubeSequenceProgress(i, null);
+            }
+            int moveIndex = parseScrambleMove(moves.get(i));
+            if (moveIndex < 0 || moveIndex % 3 != 1) {
+                continue;
+            }
+            int axisStart = moveIndex - moveIndex % 3;
+            cs.min2phase.CubieCube baseCube = new cs.min2phase.CubieCube();
+            if (cs.min2phase.Util.toCubieCube(baseState, baseCube) != 0) {
+                continue;
+            }
+            for (int pow : new int[] {0, 2}) {
+                String partialState = cs.min2phase.Util.toFaceCube(baseCube.move(axisStart + pow));
+                if (TextUtils.equals(cubeState, partialState)) {
+                    String pendingMove = "URFDLB".charAt(moveIndex / 3) + getMoveSuffix(pow);
+                    return new SmartCubeSequenceProgress(i, pendingMove);
+                }
+            }
+        }
+        if (!fullStates.isEmpty() && TextUtils.equals(cubeState, fullStates.get(fullStates.size() - 1))) {
+            return new SmartCubeSequenceProgress(fullStates.size(), null);
+        }
+        return null;
+    }
+
+    private int parseScrambleMove(String move) {
+        if (TextUtils.isEmpty(move)) {
+            return -1;
+        }
+        char face = move.charAt(0);
+        int axis;
+        switch (face) {
+            case 'U': axis = 0; break;
+            case 'R': axis = 3; break;
+            case 'F': axis = 6; break;
+            case 'D': axis = 9; break;
+            case 'L': axis = 12; break;
+            case 'B': axis = 15; break;
+            default: return -1;
+        }
+        if (move.length() >= 2) {
+            char suffix = move.charAt(1);
+            if (suffix == '2') {
+                axis += 1;
+            } else if (suffix == '\'') {
+                axis += 2;
+            }
+        }
+        return axis;
+    }
+
+    private String formatScrambleMove(int move) {
+        if (move < 0 || move >= 18) {
+            return null;
+        }
+        return "URFDLB".charAt(move / 3) + getMoveSuffix(move % 3);
+    }
+
+    private String invertScrambleMove(String move) {
+        int moveIndex = parseScrambleMove(move);
+        if (moveIndex < 0) {
+            return move;
+        }
+        return formatScrambleMove(invertMoveIndex(moveIndex));
+    }
+
+    private int invertMoveIndex(int moveIndex) {
+        int pow = moveIndex % 3;
+        if (pow == 0) {
+            pow = 2;
+        } else if (pow == 2) {
+            pow = 0;
+        }
+        return moveIndex - moveIndex % 3 + pow;
+    }
+
+    private void appendCombinedMove(List<String> moves, String move) {
+        if (TextUtils.isEmpty(move)) {
+            return;
+        }
+        if (moves.isEmpty()) {
+            moves.add(move);
+            return;
+        }
+        String lastMove = moves.get(moves.size() - 1);
+        if (lastMove.charAt(0) != move.charAt(0)) {
+            moves.add(move);
+            return;
+        }
+        int mergedPower = (getMovePower(lastMove) + getMovePower(move)) % 4;
+        moves.remove(moves.size() - 1);
+        if (mergedPower != 0) {
+            moves.add(lastMove.charAt(0) + getMoveSuffix(powerToSuffixIndex(mergedPower)));
+        }
+    }
+
+    private void appendDisplayMove(List<String> moves, List<Boolean> correctionFlags, String move, boolean isCorrection) {
+        if (TextUtils.isEmpty(move)) {
+            return;
+        }
+        if (moves.isEmpty()) {
+            moves.add(move);
+            correctionFlags.add(isCorrection);
+            return;
+        }
+        String lastMove = moves.get(moves.size() - 1);
+        if (lastMove.charAt(0) != move.charAt(0)) {
+            moves.add(move);
+            correctionFlags.add(isCorrection);
+            return;
+        }
+        int mergedPower = (getMovePower(lastMove) + getMovePower(move)) % 4;
+        boolean mergedCorrection = correctionFlags.get(correctionFlags.size() - 1) || isCorrection;
+        moves.remove(moves.size() - 1);
+        correctionFlags.remove(correctionFlags.size() - 1);
+        if (mergedPower != 0) {
+            moves.add(lastMove.charAt(0) + getMoveSuffix(powerToSuffixIndex(mergedPower)));
+            correctionFlags.add(mergedCorrection);
+        }
+    }
+
+    private int getMovePower(String move) {
+        if (TextUtils.isEmpty(move) || move.length() < 2) {
+            return 1;
+        }
+        char suffix = move.charAt(1);
+        if (suffix == '2') {
+            return 2;
+        }
+        if (suffix == '\'') {
+            return 3;
+        }
+        return 1;
+    }
+
+    private int powerToSuffixIndex(int power) {
+        switch (power) {
+            case 2:
+                return 1;
+            case 3:
+                return 2;
+            case 1:
+            default:
+                return 0;
+        }
+    }
+
+    private String getMoveSuffix(int suffixIndex) {
+        switch (suffixIndex) {
+            case 1:
+                return "2";
+            case 2:
+                return "'";
+            default:
+                return "";
+        }
+    }
+
+    private boolean isSmartCubeTrainingScramble() {
+        return SmartCubeTraining.isSmart333Training(scrambleIdx);
+    }
+
+    private String getDisplayCubeState(String cubeState) {
+        if (isSmartCubeTrainingScramble()) {
+            return Utils.orientFacelets(cubeState, smartCubeTrainingOrientation);
+        }
+        return cubeState;
+    }
+
+    public String getDisplaySmartCubeState(String cubeState) {
+        return getDisplayCubeState(cubeState);
+    }
+
+    private int getDisplayCubeMove(int move) {
+        if (isSmartCubeTrainingScramble()) {
+            return Utils.orientSmartCubeMove(move, smartCubeTrainingOrientation);
+        }
+        return move;
+    }
+
+    private void updateScrambleTextView() {
+        if (currentScramble == null || TextUtils.isEmpty(currentScramble.getScramble())) {
+            return;
+        }
+        CharSequence nextText;
+        if (currentScramble.getScrambleListSize() > 1) {
+            nextText = currentScramble.getScrambleWithIndicator(dm.heightPixels < dpi * 376);
+            btnLeft.setVisibility(View.VISIBLE);
+            btnLeft.setEnabled(true);
+            btnRight.setVisibility(View.VISIBLE);
+            btnRight.setEnabled(true);
+        } else {
+            if (shouldShowTimerPageCubeState() && currentScramble.is333Scramble()) {
+                updateSmartCubeScrambleProgress(getActiveSmartCube());
+                nextText = buildSmartCubeScrambleText();
+            } else {
+                nextText = currentScramble.getScrambleWithHint(dm.heightPixels < dpi * 376);
+            }
+            btnLeft.setVisibility(View.GONE);
+            btnRight.setVisibility(View.GONE);
+        }
+        if (nextText instanceof Spanned || !TextUtils.equals(tvScramble.getText(), nextText)) {
+            tvScramble.setText(nextText);
+        }
+    }
+
+    private void refreshTimerPageSmartCubeUi() {
+        refreshTimerPageSmartCubeUi(true);
+    }
+
+    private void refreshTimerPageSmartCubeUi(final boolean refreshCubeView) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (!isTimerTabActive()) {
+                    hideTimerPageCubeState();
+                    return;
+                }
+                if (timer.getTimerState() == DCTTimer.RUNNING) {
+                    resetSmartCubeReadyLayout();
+                    if (refreshCubeView && shouldShowTimerPageCubeState()) {
+                        showScrambleView();
+                    }
+                    return;
+                }
+                updateScrambleTextView();
+                if (refreshCubeView) {
+                    showScrambleView();
+                }
+                if (shouldUseSmartCubeReadyLayout()) {
+                    applySmartCubeReadyLayout();
+                } else {
+                    resetSmartCubeReadyLayout();
+                }
+            }
+        });
+    }
+
+    public void resetSmartCubeToSolved() {
+        SmartCube cube = getActiveSmartCube();
+        if (cube == null) {
+            return;
+        }
+        cube.markSolved();
+        cube.clearLastReconstruction();
+        if (bluetoothTools != null) {
+            bluetoothTools.notifyLocalCubeReset(cube.getCubeState());
+        }
+        timer.stopInspect();
+        timer.setTimerState(DCTTimer.READY);
+        canStart = false;
+        smartCubeSkipStartForCurrentMove = false;
+        penaltyTime = 0;
+        isDNF = false;
+        setTimerColor(APP.getTextColor());
+        setTimerText(getIdleTimerText());
+        tvMulPhase.setText("");
+        smartCubeScrambleProgress = 0;
+        smartCubeScramblePendingMove = null;
+        clearSmartCubeCorrectionSuggestion();
+        refreshTimerPageSmartCubeUi();
+        Toast.makeText(context, R.string.smart_cube_reset_done, Toast.LENGTH_SHORT).show();
+    }
+
+    public void disconnectSmartCube() {
+        clearSmartCubeGyroState();
+        if (bluetoothTools != null) {
+            bluetoothTools.disconnect();
+        }
+    }
+
+    public void refreshSmartCubeStateUi() {
+        SmartCube cube = getActiveSmartCube();
+        if (cube != null && !TextUtils.isEmpty(cube.getCubeState())) {
+            GanRobotSessionState.setLatestSmartCubeState(cube.getCubeState());
+        }
+        updateSmartCubeCompletionChecker(cube);
+        if (refreshSmartCubeTrainingScrambleAfterConnect(cube)) {
+            return;
+        }
+        if (isCurrentSmartCubeAtScrambleTarget(cube)) {
+            completeSmartCubeScramble(cube);
+        }
+        refreshTimerPageSmartCubeUi();
+        androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("CubeState");
+        if (fragment instanceof CubeStateDialog) {
+            ((CubeStateDialog) fragment).refreshState();
+        }
+    }
+
+    private boolean isCurrentSmartCubeAtScrambleTarget(SmartCube cube) {
+        if (cube == null || currentScramble == null || !currentScramble.is333Scramble()) {
+            return false;
+        }
+        if (isSmartCubeTrainingScramble()) {
+            return TextUtils.equals(cube.getCubeState(), currentScramble.getCubeState());
+        }
+        return Utils.isSameStateIgnoringRotation(cube.getCubeState(), currentScramble.getCubeState());
+    }
+
+    private void markSmartCubeTrainingScrambleRefreshPending() {
+        if (isSmartCubeMode() && isSmartCubeTrainingScramble()) {
+            smartCubeTrainingScrambleRefreshPending = true;
+        }
+    }
+
+    private boolean refreshSmartCubeTrainingScrambleNow() {
+        if (!isSmartCubeMode() || !isSmartCubeTrainingScramble()
+                || currentScramble == null || TextUtils.isEmpty(currentScramble.getScramble())
+                || timer.getTimerState() != DCTTimer.READY || canStart) {
+            return false;
+        }
+        smartCubeTrainingScrambleRefreshPending = false;
+        Runnable refresh = new Runnable() {
+            @Override
+            public void run() {
+                if (!isSmartCubeMode() || !isSmartCubeTrainingScramble()
+                        || timer.getTimerState() != DCTTimer.READY || canStart) {
+                    return;
+                }
+                clearSmartCubeScrambleCache();
+                smartCubeSkipStartForCurrentMove = false;
+                newScramble();
+            }
+        };
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            refresh.run();
+        } else {
+            runOnUiThread(refresh);
+        }
+        return true;
+    }
+
+    private boolean refreshSmartCubeTrainingScrambleAfterConnect(final SmartCube cube) {
+        if (!smartCubeTrainingScrambleRefreshPending) {
+            return false;
+        }
+        if (!isSmartCubeMode() || !isSmartCubeTrainingScramble()
+                || currentScramble == null || TextUtils.isEmpty(currentScramble.getScramble())) {
+            smartCubeTrainingScrambleRefreshPending = false;
+            return false;
+        }
+        if (cube == null || TextUtils.isEmpty(cube.getCubeState())) {
+            return false;
+        }
+        if (timer.getTimerState() != DCTTimer.READY || canStart) {
+            smartCubeTrainingScrambleRefreshPending = false;
+            return false;
+        }
+        return refreshSmartCubeTrainingScrambleNow();
+    }
+
+    public void onSmartCubeGyroChanged(float x, float y, float z, float w) {
+        synchronized (smartCubeGyroLock) {
+            latestSmartCubeGyro[0] = x;
+            latestSmartCubeGyro[1] = y;
+            latestSmartCubeGyro[2] = z;
+            latestSmartCubeGyro[3] = w;
+            hasLatestSmartCubeGyro = true;
+            hasSmartCubeGyroCapability = true;
+            if (!hasSmartCubeGyroCalibration) {
+                smartCubeGyroCalibration[0] = x;
+                smartCubeGyroCalibration[1] = y;
+                smartCubeGyroCalibration[2] = z;
+                smartCubeGyroCalibration[3] = w;
+                hasSmartCubeGyroCalibration = true;
+            }
+        }
+        if (!shouldFollowSmartCubeGyro()) {
+            return;
+        }
+        if (smartCube3DView != null) {
+            applyLatestSmartCubeGyroCalibration(smartCube3DView);
+            smartCube3DView.setGyroQuaternion(x, y, z, w);
+        }
+        postSmartCubeGyroUiUpdate();
+    }
+
+    private void postSmartCubeGyroUiUpdate() {
+        synchronized (smartCubeGyroLock) {
+            if (smartCubeGyroUiUpdatePosted) {
+                return;
+            }
+            smartCubeGyroUiUpdatePosted = true;
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                float x;
+                float y;
+                float z;
+                float w;
+                boolean hasGyro;
+                synchronized (smartCubeGyroLock) {
+                    hasGyro = hasLatestSmartCubeGyro;
+                    x = latestSmartCubeGyro[0];
+                    y = latestSmartCubeGyro[1];
+                    z = latestSmartCubeGyro[2];
+                    w = latestSmartCubeGyro[3];
+                    smartCubeGyroUiUpdatePosted = false;
+                }
+                if (!hasGyro || !shouldFollowSmartCubeGyro()) {
+                    return;
+                }
+                androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("CubeState");
+                if (fragment instanceof CubeStateDialog) {
+                    ((CubeStateDialog) fragment).setGyroQuaternion(x, y, z, w);
+                }
+            }
+        });
+    }
+
+    private void clearSmartCubeGyroState() {
+        synchronized (smartCubeGyroLock) {
+            Arrays.fill(latestSmartCubeGyro, 0f);
+            Arrays.fill(smartCubeGyroCalibration, 0f);
+            hasLatestSmartCubeGyro = false;
+            hasSmartCubeGyroCalibration = false;
+            hasSmartCubeGyroCapability = false;
+            smartCubeGyroUiUpdatePosted = false;
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                disableSmartCubeGyroViews();
+            }
+        });
+    }
+
+    private boolean getLatestSmartCubeGyro(float[] out) {
+        synchronized (smartCubeGyroLock) {
+            if (!hasLatestSmartCubeGyro) {
+                return false;
+            }
+            out[0] = latestSmartCubeGyro[0];
+            out[1] = latestSmartCubeGyro[1];
+            out[2] = latestSmartCubeGyro[2];
+            out[3] = latestSmartCubeGyro[3];
+            return true;
+        }
+    }
+
+    private boolean getSmartCubeGyroCalibration(float[] out) {
+        synchronized (smartCubeGyroLock) {
+            if (!hasSmartCubeGyroCalibration) {
+                return false;
+            }
+            out[0] = smartCubeGyroCalibration[0];
+            out[1] = smartCubeGyroCalibration[1];
+            out[2] = smartCubeGyroCalibration[2];
+            out[3] = smartCubeGyroCalibration[3];
+            return true;
+        }
+    }
+
+    public boolean applyLatestSmartCubeGyroCalibration(SmartCube3DView view) {
+        if (view == null) {
+            return false;
+        }
+        if (!shouldFollowSmartCubeGyro()) {
+            view.disableGyroView();
+            return false;
+        }
+        float[] calibration = new float[4];
+        if (!getSmartCubeGyroCalibration(calibration)) {
+            return false;
+        }
+        view.setGyroCalibration(calibration[0], calibration[1], calibration[2], calibration[3]);
+        return true;
+    }
+
+    public boolean applyLatestSmartCubeGyro(SmartCube3DView view) {
+        if (view == null) {
+            return false;
+        }
+        if (!shouldFollowSmartCubeGyro()) {
+            view.disableGyroView();
+            return false;
+        }
+        float[] gyro = new float[4];
+        if (!getLatestSmartCubeGyro(gyro)) {
+            return false;
+        }
+        applyLatestSmartCubeGyroCalibration(view);
+        view.setGyroQuaternion(gyro[0], gyro[1], gyro[2], gyro[3]);
+        return true;
+    }
+
+    private void resetSmartCubeGyroPosture(SmartCube3DView view, float[] gyro, boolean hasGyro) {
+        if (view == null) {
+            return;
+        }
+        if (!shouldFollowSmartCubeGyro()) {
+            view.disableGyroView();
+            return;
+        }
+        if (hasGyro) {
+            view.resetGyroPosture(gyro[0], gyro[1], gyro[2], gyro[3]);
+        } else {
+            view.resetGyroPosture();
+        }
+    }
+
+    public void resetSmartCubeGyroPosture() {
+        float[] gyro = new float[4];
+        boolean hasGyro = getLatestSmartCubeGyro(gyro);
+        if (hasGyro) {
+            synchronized (smartCubeGyroLock) {
+                smartCubeGyroCalibration[0] = gyro[0];
+                smartCubeGyroCalibration[1] = gyro[1];
+                smartCubeGyroCalibration[2] = gyro[2];
+                smartCubeGyroCalibration[3] = gyro[3];
+                hasSmartCubeGyroCalibration = true;
+            }
+        }
+        resetSmartCubeGyroPosture(smartCube3DView, gyro, hasGyro);
+        androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("CubeState");
+        if (fragment instanceof CubeStateDialog) {
+            ((CubeStateDialog) fragment).resetGyroPosture(gyro, hasGyro);
+        }
+    }
+
+    private void disableSmartCubeGyroViews() {
+        if (smartCube3DView != null) {
+            smartCube3DView.disableGyroView();
+        }
+        androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("CubeState");
+        if (fragment instanceof CubeStateDialog) {
+            ((CubeStateDialog) fragment).disableGyroView();
+        }
+    }
+
+    private void refreshSmartCubeGyroFollowViews() {
+        if (shouldFollowSmartCubeGyro()) {
+            applyLatestSmartCubeGyro(smartCube3DView);
+            androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("CubeState");
+            if (fragment instanceof CubeStateDialog) {
+                ((CubeStateDialog) fragment).applyLatestGyro();
+            }
+        } else {
+            disableSmartCubeGyroViews();
+        }
+    }
+
+    public void refreshCubeList(List<BLEDevice> list) {
+        if (adapter == null) return;
+        adapter.setList(list);
+        adapter.notifyDataSetChanged();
+    }
+
+    public void refreshCubeList() {
+        if (adapter == null) return;
+        adapter.notifyDataSetChanged();
+    }
+
+    public void showScanButton() {
+        handler.removeCallbacks(stopBleScanRunnable);
+        if (pbScan != null) pbScan.setVisibility(View.GONE);
+        if (btnScan != null) btnScan.setVisibility(View.VISIBLE);
+    }
+
+    public void connectBleDevice(int pos) {
+        markSmartCubeTrainingScrambleRefreshPending();
+        bluetoothTools.connectDevice(pos);
+    }
+
+    public void onTimingBleDeviceConnected(final int deviceType) {
+        clearSmartCubeGyroState();
+        final int targetEnterTime;
+        if (isSmartCubeDeviceType(deviceType)) {
+            targetEnterTime = 3;
+        } else if (isSmartTimerDeviceType(deviceType)) {
+            targetEnterTime = 4;
+        } else {
+            return;
+        }
+        final boolean wasSmartCubeMode = isSmartCubeMode();
+        enterTime = targetEnterTime;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (stAdapter != null) {
+                    stAdapter.setText(ST_ENTER_TIME, itemStr[0][targetEnterTime]);
+                }
+                if (targetEnterTime == 4) {
+                    disableSmartTimerWcaSettings(false);
+                }
+                if (wasSmartCubeMode && targetEnterTime != 3) {
+                    hideTimerPageCubeState();
+                    showScrambleView();
+                }
+                setPref("tiway", targetEnterTime);
+            }
+        });
+    }
+
+    public void dismissDialog() {
+        handler.removeCallbacks(stopBleScanRunnable);
+        if (dialog != null && dialog.isShowing()) dialog.dismiss();
+        adapter = null;
+        btnScan = null;
+        pbScan = null;
+        canStart = false;
+    }
+
+    public void disconnectHint(final BLEDevice device) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                fallbackBleModeToTimer();
+                if (adapter != null)
+                    adapter.notifyDataSetChanged();
+                Toast.makeText(context, device.getName() + getString(R.string.cube_not_connected), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void fallbackBleModeToTimer() {
+        clearSmartCubeGyroState();
+        if (!isSmartCubeMode() && !isSmartTimerMode()) {
+            return;
+        }
+        enterTime = 0;
+        bleDeviceType = BLEDevice.TYPE_UNKNOWN;
+        if (stAdapter != null) {
+            stAdapter.setText(ST_ENTER_TIME, itemStr[0][enterTime]);
+        }
+        setPref("tiway", enterTime);
+        setTimerColor(APP.getTextColor());
+        setTimerText(getIdleTimerText());
+        timer.setTimerState(DCTTimer.READY);
+        tvMulPhase.setText("");
+        showScrambleView();
+        updateScrambleTextView();
+    }
+
+    public void moveCube(SmartCube cube, int move, int time) {
+        moveCube(cube, move, time, true);
+    }
+
+    public void moveCube(SmartCube cube, int move, int time, boolean trackScrambleDeviation) {
+        String previousState = cube.getCubeState();
+        boolean wasRunning = timer.getTimerState() == DCTTimer.RUNNING;
+        boolean waitingForSolveStart = canStart
+                && (timer.getTimerState() == DCTTimer.READY || timer.getTimerState() == DCTTimer.INSPECTING);
+        updateSmartCubeCompletionChecker(cube);
+        cube.applyMove(move, time, isSmartCubeTrainingScramble() ? null : currentScramble.getCubeState());
+        GanRobotSessionState.setLatestSmartCubeState(cube.getCubeState());
+        if (!wasRunning && !waitingForSolveStart && !GanRobotSessionState.isRobotMoving()) {
+            updateSmartCubeScrambleProgress(cube, trackScrambleDeviation ? move : -1);
+            if (isSmartCubeTrainingScramble() && smartCubeScrambleProgress == smartCubeScrambleMoves.size()
+                    && timer.getTimerState() != DCTTimer.RUNNING) {
+                completeSmartCubeScramble(cube);
+            }
+        }
+        updateSmartCubeMoveUi(previousState, cube.getCubeState(), move);
+        if (timer.getTimerState() == DCTTimer.READY || timer.getTimerState() == DCTTimer.INSPECTING) {
+            if (canStart) {
+                if (smartCubeSkipStartForCurrentMove) {
+                    smartCubeSkipStartForCurrentMove = false;
+                    return;
+                }
+                canStart = false;
+                clearSmartCubeCorrectionSuggestion();
+                cube.markSolveStarted(previousState);
+                startSmartCubeSolve();
+            }
+        }
+    }
+
+    private void completeSmartCubeScramble(SmartCube cube) {
+        if (cube == null || timer.getTimerState() == DCTTimer.RUNNING) {
+            return;
+        }
+        if (canStart && (timer.getTimerState() == DCTTimer.READY || timer.getTimerState() == DCTTimer.INSPECTING)) {
+            return;
+        }
+        cube.markScrambled();
+        smartCubeScrambleProgress = smartCubeScrambleMoves.size();
+        smartCubeScramblePendingMove = null;
+        clearSmartCubeCorrectionSuggestion();
+        timer.stopInspect();
+        canStart = true;
+        smartCubeSkipStartForCurrentMove = true;
+        if (wca && !currentScramble.isBlindfoldScramble()) {
+            timer.setTimerState(DCTTimer.READY);
+            startSmartCubeInspection();
+        } else {
+            timer.setTimerState(DCTTimer.READY);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    showReadyTimerText();
+                    setTimerColor(0xff00ff00);
+                    tvMulPhase.setText("");
+                    refreshTimerPageSmartCubeUi();
+                }
+            });
+        }
+    }
+
+    private void startSmartCubeSolve() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                resetSmartCubeReadyLayout();
+                tvMulPhase.setText("");
+                timer.timeStart = SystemClock.uptimeMillis();
+                penaltyTime = timer.getPenaltyTime();
+                isDNF = timer.isDNF();
+                timer.count();
+                acquireWakeLock();
+                setVisibility(false);
+            }
+        });
+    }
+
+    private void startSmartCubeInspection() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                resetSmartCubeReadyLayout();
+                tvMulPhase.setText("");
+                timer.timeStart = SystemClock.uptimeMillis();
+                timer.count();
+                acquireWakeLock();
+                setVisibility(false);
+                refreshTimerPageSmartCubeUi();
+            }
+        });
+    }
+
+    public void markScrambled() {
+        smartCubeScrambleProgress = smartCubeScrambleMoves.size();
+        smartCubeScramblePendingMove = null;
+        clearSmartCubeCorrectionSuggestion();
+        showReadyTimerText();
+        setTimerColor(0xff00ff00);
+        tvMulPhase.setText("");
+        timer.setTimerState(DCTTimer.READY);
+        canStart = true;
+        smartCubeSkipStartForCurrentMove = false;
+        refreshTimerPageSmartCubeUi();
+    }
+
+    public void showCubeStateDialog() {
+        if (isFinishing() || bluetoothTools == null || bluetoothTools.getCube() == null) {
+            return;
+        }
+        refreshSmartCubeTrainingScrambleAfterConnect(bluetoothTools.getCube());
+        refreshTimerPageSmartCubeUi();
+        CubeStateDialog dialog = CubeStateDialog.newInstance(bluetoothTools.getCube());
+        dialog.show(getSupportFragmentManager(), "CubeState");
+    }
+
+    private void updateSmartCubeMoveUi(final String fromState, final String toState, final int move) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (shouldShowTimerPageCubeState()) {
+                    animateTimerPageCubeState(fromState, toState, move);
+                }
+                androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("CubeState");
+                if (fragment instanceof CubeStateDialog) {
+                    ((CubeStateDialog) fragment).playMove(getDisplayCubeState(fromState), getDisplayCubeState(toState), getDisplayCubeMove(move));
+                }
+                if (timer.getTimerState() == DCTTimer.RUNNING) {
+                    return;
+                }
+                updateScrambleTextView();
+            }
+        });
+    }
+
+    private SmartCube.StateChangedCallback cubeStateChangeCallback = new SmartCube.StateChangedCallback() {
+        @Override
+        public void onScrambled(SmartCube cube) {
+            Log.w("dct", "已打乱");
+            completeSmartCubeScramble(cube);
+        }
+
+        @Override
+        public void onSolved(final SmartCube cube) {
+            if (timer.getTimerState() == DCTTimer.RUNNING) {
+                final boolean trainingScramble = isSmartCubeTrainingScramble();
+                cube.calcResult();
+                if (trainingScramble) {
+                    cube.resetSolveTracking();
+                } else {
+                    cube.markSolved();
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        timer.timeEnd = SystemClock.uptimeMillis();
+                        timer.count();
+                        setVisibility(true);
+                        int localTime = (int) timer.time;
+                        int timeRes = cube.getResult();
+                        Log.w("dct", "smart cube solved local=" + localTime
+                                + " device=" + timeRes
+                                + " delta=" + (localTime - timeRes));
+                        int moveCount = cube.getReconstructedMovesCount();
+                        tvMulPhase.setText(String.format(Locale.getDefault(), "%d moves\n%.1f tps", moveCount, timeRes > 0 ? moveCount * 1000f / timeRes : 0f));
+                        Log.w("dct", "成绩 "+timeRes);
+                        if (!wca || currentScramble.isBlindfoldScramble()) { penaltyTime = 0; isDNF = false;}
+                        timer.setTimerState(DCTTimer.READY);
+                        saveSmartCubeTime(timeRes, cube);
+                    }
+                });
+            }
+        }
+    };
+
+    private SmartTimerProtocol.StateCallback timerStateCallback = new SmartTimerProtocol.StateCallback() {
+        @Override
+        public void onTimerIdle(final int time) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!isSmartTimerMode()) {
+                        return;
+                    }
+                    int previousTimerState = timer.getTimerState();
+                    if (previousTimerState == DCTTimer.RUNNING) {
+                        timer.cancelExternalRunning();
+                    }
+                    resetSmartTimerLayout();
+                    setTimerColor(APP.getTextColor());
+                    if (time > 0 && previousTimerState == DCTTimer.STOP) {
+                        setTimerText(StringUtils.timeToString(time));
+                    } else {
+                        setTimerText(getIdleTimerText());
+                    }
+                    timer.setTimerState(DCTTimer.READY);
+                    penaltyTime = 0;
+                    isDNF = false;
+                    if (!screenOn) {
+                        releaseWakeLock();
+                    }
+                }
+            });
+        }
+
+        @Override
+        public void onTimerReady(final int time) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!isSmartTimerMode()) {
+                        return;
+                    }
+                    if (timer.getTimerState() == DCTTimer.RUNNING) {
+                        timer.cancelExternalRunning();
+                    }
+                    applySmartTimerReadyLayout();
+                    setTimerColor(0xff00ff00);
+                    setTimerText(getIdleTimerText());
+                    timer.setTimerState(DCTTimer.READY);
+                    penaltyTime = 0;
+                    isDNF = false;
+                }
+            });
+        }
+
+        @Override
+        public void onTimerRunning(final int time) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!isSmartTimerMode()) {
+                        return;
+                    }
+                    penaltyTime = 0;
+                    isDNF = false;
+                    if (timer.getTimerState() != DCTTimer.RUNNING) {
+                        timer.startExternalRunning(time);
+                        acquireWakeLock();
+                        applySmartTimerRunningLayout();
+                    }
+                }
+            });
+        }
+
+        @Override
+        public void onTimerStopped(final int time) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!isSmartTimerMode()) {
+                        return;
+                    }
+                    if (timer.getTimerState() == DCTTimer.STOP) {
+                        return;
+                    }
+                    resetSmartTimerLayout();
+                    setTimerColor(APP.getTextColor());
+                    setTimerText(StringUtils.timeToString(time));
+                    if (timer.getTimerState() == DCTTimer.RUNNING) {
+                        timer.finishExternalRunning(time);
+                    } else {
+                        timer.setTimerState(DCTTimer.READY);
+                    }
+                    save(time);
+                    timer.setTimerState(DCTTimer.READY);
+                    if (!screenOn) {
+                        releaseWakeLock();
+                    }
+                }
+            });
+        }
+
+        @Override
+        public void onTimerDisconnected() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!isSmartTimerMode()) {
+                        return;
+                    }
+                    timer.cancelExternalRunning();
+                    resetSmartTimerLayout();
+                    setTimerColor(APP.getTextColor());
+                    setTimerText(getIdleTimerText());
+                    penaltyTime = 0;
+                    isDNF = false;
+                    if (!screenOn) {
+                        releaseWakeLock();
+                    }
+                }
+            });
+        }
+    };
+
+    private View.OnClickListener mOnClickListener = new View.OnClickListener() {    //按钮监听事件
+        @Override
+        public void onClick(View v) {
+            switch (v.getId()) {
+                case R.id.bt_scramble:	//选择打乱
+                    selectIdx = scrambleIdx >> 5;
+                    selectIdx2 = scrambleIdx & 0x1f;
+                    int selectDisplayPosition = ScrambleGroupDisplay.toDisplayPosition(selectIdx, StringUtils.scrambleItems.length);
+                    int selectSubDisplayPosition = getScrambleSubDisplayPosition(selectIdx, selectIdx2);
+                    int resId = R.layout.popup_window;
+                    view = LayoutInflater.from(context).inflate(resId, null);
+                    ListView listView = view.findViewById(R.id.list1);
+                    s1Adapter = new TextAdapter(context, ScrambleGroupDisplay.toDisplayNames(StringUtils.scrambleItems), selectDisplayPosition, 1);
+                    listView.setAdapter(s1Adapter);
+                    listView.setSelection(selectDisplayPosition);
+                    listView.setOnItemClickListener(mOnItemListener);
+                    listView = view.findViewById(R.id.list2);
+                    s2Adapter = new TextAdapter(context, getScrambleSubDisplayNames(selectIdx), selectSubDisplayPosition, 2);
+                    listView.setAdapter(s2Adapter);
+                    if (selectSubDisplayPosition > 5) listView.setSelection(selectSubDisplayPosition - 5);
+                    //listView.setSelection(0);
+                    listView.setOnItemClickListener(mOnItemListener);
+                    popupWindow = new PopupWindow(view, dip300, dip300, true);
+                    popupWindow.setBackgroundDrawable(getResources().getDrawable(R.drawable.choosearea_bg));
+                    popupWindow.setTouchable(true);
+                    popupWindow.showAsDropDown(v, (btnScramble.getWidth() - popupWindow.getWidth()) / 2, 0);
+                    break;
+                case R.id.btn_session_mean:	//分组平均
+                    for (int i = 0; i < result.length(); i++)
+                        if (!result.isDnf(i)) {
+                            showAvgDetail(3, 0);
+                            break;
+                        }
+                    break;
+                case R.id.btn_session:  //分组列表
+                    String[] list = sessionManager.getSessionNames();
+                    new AlertDialog.Builder(context).setItems(list, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            sessionIdx = i;
+                            changeSession();
+                        }
+                    }).setNeutralButton(R.string.title_activity_session, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            sessionManager.updateSessionCount();
+                            Intent intent = new Intent(context, SessionActivity.class);
+                            startActivityForResult(intent, 2);
+                        }
+                    }).setNegativeButton(R.string.btn_cancel, null).show();
+                    break;
+                case R.id.btn_search:   //搜索成绩
+                    llSearch.setVisibility(View.VISIBLE);
+                    llSession.setVisibility(View.GONE);
+                    editSearch.setText("");
+                    btnNext.setVisibility(View.GONE);
+                    btnPrev.setVisibility(View.GONE);
+                    Utils.showKeyboard(editSearch);
+                    break;
+                case R.id.btn_cancel:   //取消搜索
+                    llSearch.setVisibility(View.GONE);
+                    llSession.setVisibility(View.VISIBLE);
+                    resAdapter.setHighlight(-1);
+                    Utils.hideKeyboard(editSearch);
+                    break;
+                case R.id.btn_next: //查找下一个
+                    searchIndex++;
+                    if (searchIndex >= searchResult.size()) searchIndex = 0;
+                    resAdapter.setHighlight(searchResult.get(searchIndex));
+                    lvResult.setSelection(searchResult.get(searchIndex));
+                    break;
+                case R.id.btn_prev: //查找上一个
+                    searchIndex--;
+                    if (searchIndex < 0) searchIndex = searchResult.size() - 1;
+                    resAdapter.setHighlight(searchResult.get(searchIndex));
+                    lvResult.setSelection(searchResult.get(searchIndex));
+                    break;
+                case R.id.btn_clear:    //清空分组
+                    if (result.length() != 0) {
+                        confirmDeleteAll();
+                    }
+                    break;
+                case R.id.bt_left: //上一个打乱
+                    showLastScramble();
+                    break;
+                case R.id.bt_right:    //下一个打乱
+                    showNextScramble();
+                    break;
+                case R.id.btn_scan: //扫描设备
+                    if (ensureBlePermissions(false, true)) {
+                        startBleScanInternal();
+                    }
+                    break;
+            }
+        }
+    };
+
+    private String[] getScrambleSubDisplayNames(int realGroup) {
+        String[] names = StringUtils.scrambleSubitems[realGroup + 1];
+        return ScrambleSubitemDisplay.toDisplayNames(realGroup, names);
+    }
+
+    private int getScrambleSubDisplayPosition(int realGroup, int realSub) {
+        String[] names = StringUtils.scrambleSubitems[realGroup + 1];
+        int displaySub = realSub;
+        if (realGroup == ScrambleGroupDisplay.WCA_GROUP && displaySub > 7) {
+            displaySub--;
+        }
+        return ScrambleSubitemDisplay.toDisplayPosition(realGroup, displaySub, names.length);
+    }
+
+    private int getScrambleSubRealIndex(int realGroup, int displayPosition) {
+        String[] names = StringUtils.scrambleSubitems[realGroup + 1];
+        int realSub = ScrambleSubitemDisplay.toRealSub(realGroup, displayPosition, names.length);
+        if (realGroup == ScrambleGroupDisplay.WCA_GROUP && realSub >= 7) {
+            realSub++;
+        }
+        return realSub;
+    }
+
+    private AdapterView.OnItemClickListener mOnItemListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+            ListView listView = (ListView) arg0;
+            switch (listView.getId()) {
+                case R.id.list1:
+                    int realIdx = ScrambleGroupDisplay.toRealGroup(arg2, StringUtils.scrambleItems.length);
+                    if (selectIdx != realIdx) {
+                        selectIdx = realIdx;
+                        s1Adapter.setSelectItem(arg2);
+                        s1Adapter.notifyDataSetChanged();
+                        s2Adapter.setData(getScrambleSubDisplayNames(selectIdx));
+                        if (selectIdx == (scrambleIdx >> 5)) {
+                            s2Adapter.setSelectItem(getScrambleSubDisplayPosition(selectIdx, scrambleIdx & 0x1f));
+                        } else s2Adapter.setSelectItem(-1);
+                        s2Adapter.notifyDataSetChanged();
+                    }
+                    break;
+                case R.id.list2:
+                    int realSub = getScrambleSubRealIndex(selectIdx, arg2);
+                    if (selectIdx != (scrambleIdx >> 5) || selectIdx2 != realSub) {
+                        selectIdx2 = realSub;
+                        scrambleIdx = selectIdx << 5 | selectIdx2;
+                        setScramble();
+                        if (selectSession) {    //自动选择分组
+                            Log.w("dct", "选择分组");
+                            for (int i = 0; i < sessionManager.getSessionLength(); i++) {
+                                if (scrambleIdx == sessionManager.getPuzzle(i)) {
+                                    Log.w("dct", "找到分组 "+i);
+                                    sessionIdx = i;
+                                    multiPhase = sessionManager.getMultiPhase(i);
+                                    getResult();
+                                    setResultTitle();
+                                    btnSession.setText(sessionManager.getSessionName(sessionIdx));
+                                    btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+                                    result.calcAvg();
+                                    if (multiPhase > 0) result.calcMpMean();
+                                    resetSortToGlobalOrder();
+                                    resAdapter.reload();
+                                    scrollResultToLatest();
+                                    setPref("session", sessionIdx);
+                                    setStatsLabel();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    popupWindow.dismiss();
+                    break;
+            }
+        }
+    };
+
+    private TextWatcher mTextWatcher = new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
+
+        @Override
+        public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            String key = charSequence.toString().trim().toLowerCase();
+            if (TextUtils.isEmpty(key)) {
+                btnNext.setVisibility(View.GONE);
+                btnPrev.setVisibility(View.GONE);
+                resAdapter.setHighlight(-1);
+                return;
+            }
+            searchResult = result.search(key);
+            //Log.w("dct", key+" 搜索:"+searchResult.size());
+            if (searchResult.size() < 2) {
+                btnNext.setVisibility(View.GONE);
+                btnPrev.setVisibility(View.GONE);
+            } else {
+                btnNext.setVisibility(View.VISIBLE);
+                btnPrev.setVisibility(View.VISIBLE);
+            }
+            if (searchResult.size() > 0) {
+                searchIndex = 0;
+                resAdapter.setHighlight(searchResult.get(0));
+                lvResult.setSelection(searchResult.get(0));
+            }
+        }
+
+        @Override
+        public void afterTextChanged(Editable editable) { }
+    };
+
+    private View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            if (!simulateSS || enterTime == 1) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = (int) event.getX();
+                        startY = (int) event.getY();
+                        isSwipe = false;
+                        touchDown();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        v.performClick();
+                        touchUp();
+                        break;
+                    case MotionEvent.ACTION_CANCEL:
+                        setReadyHoldUi(false);
+                        canStart = false;
+                        timer.stopFreeze();
+                        setTimerColor(APP.getTextColor());
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        int x = (int) event.getX(), y = (int) event.getY();
+                        if (timer.getTimerState() == DCTTimer.READY) {
+                            int delX = Math.abs(x - startX), delY = Math.abs(y - startY);
+                            if (delX > dip40 || delY > dip40) {
+                                setReadyHoldUi(false);
+                                setTimerColor(APP.getTextColor());
+                                isSwipe = true;
+                                if (freezeTime > 0)
+                                    timer.stopFreeze();
+                                if (delX > delY) {  //左右滑动
+                                    if (x > startX) {
+                                        gesture = swipeType[1];
+                                    } else {
+                                        gesture = swipeType[0];
+                                    }
+                                } else if (delY > delX) {
+                                    if (y > startY) {
+                                        gesture = swipeType[3];
+                                    } else {
+                                        gesture = swipeType[2];
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    case MotionEvent.ACTION_OUTSIDE:
+//                  case MotionEvent.ACTION_CANCEL:
+                        setReadyHoldUi(false);
+                        timer.stopFreeze();
+                        setTimerColor(APP.getTextColor());
+                        break;
+                }
+            } else {
+                int count = event.getPointerCount();
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                    case MotionEvent.ACTION_MOVE:
+                    case MotionEvent.ACTION_POINTER_DOWN:
+                    case 261:
+                        if (count > 1) {
+                            int x1 = (int) event.getX(0) * 2 / tvTimer.getWidth();
+                            int x2 = (int) event.getX(1) * 2 / tvTimer.getWidth();
+                            if ((x1 ^ x2) == 1) {
+                                if (!touchDown) {
+                                    touchDown();
+                                    touchDown = true;
+                                }
+                            }
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_POINTER_UP:
+                    case 262:
+                        if (touchDown) {
+                            touchDown = false;
+                            touchUp();
+                        }
+                        break;
+                    case MotionEvent.ACTION_CANCEL:
+                        setReadyHoldUi(false);
+                        canStart = false;
+                        touchDown = false;
+                        timer.stopFreeze();
+                        setTimerColor(APP.getTextColor());
+                        break;
+                }
+            }
+            return true;
+        }
+    };
+
+    public void setPref(final int position) {
+        switch (position) {
+            case 1: //WCA观察
+                if (isSmartTimerMode()) {
+                    disableSmartTimerWcaSettings(true);
+                    break;
+                }
+                wca = !wca;
+                stAdapter.setCheck(position, wca);
+                setPref("wca", wca);
+                break;
+            case 2: //观察提示
+                if (isSmartTimerMode()) {
+                    disableSmartTimerWcaSettings(true);
+                    break;
+                }
+                inspectionAlert = !inspectionAlert;
+                stAdapter.setCheck(position, inspectionAlert);
+                setPref("wcainsp", inspectionAlert);
+                break;
+            case 3: //时间格式
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[13], timeFormat, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (timeFormat == i) return;
+                        timeFormat = i;
+                        stAdapter.setText(position, itemStr[13][i]);
+                        setPref("timeform", i);
+                        if (result.length() > 0) {
+                            resAdapter.notifyDataSetChanged();
+                            btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+                        }
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 4: //小数点格式
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[16], decimalMark, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (decimalMark == i) return;
+                        decimalMark = i;
+                        stAdapter.setText(position, itemStr[16][i]);
+                        setPref("decim", i);
+                        if (enterTime == 0) setTimerText("0" + (decimalMark == 0 ? "." : ",") + (timerAccuracy == 0 ? "00" : "000"));
+                        if (result.length() > 0) {
+                            resAdapter.notifyDataSetChanged();
+                            btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+                        }
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 5: //计时方式
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[0], enterTime, new DialogInterface.OnClickListener() {
+                    @TargetApi(18)
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (enterTime == i) return;
+                        boolean wasSmartCubeMode = isSmartCubeMode();
+                        enterTime = i;
+                        stAdapter.setText(position, itemStr[0][i]);
+                        if (i < 2) {
+                            clearSmartCubeGyroState();
+                            bluetoothTools.disconnect();
+                            if (stackmat != null) {
+                                stackmat.stop();
+                                stackmat = null;
+                            }
+                            if (i == 0)
+                                setTimerText("0" + (decimalMark == 0 ? "." : ",") + (timerAccuracy == 0 ? "00" : "000"));
+                            else setTimerText("IMPORT");
+                            tvMulPhase.setText("");
+                            timer.setTimerState(DCTTimer.READY);
+                        } else if (i == 2) {
+                            if (Build.VERSION.SDK_INT > 22) {
+                                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO)
+                                        != PackageManager.PERMISSION_GRANTED) {
+                                    //申请WRITE_EXTERNAL_STORAGE权限
+                                    ActivityCompat.requestPermissions(MainActivity.this, new String[] { Manifest.permission.RECORD_AUDIO },
+                                            7);
+                                } else startStackmat();
+                            } else startStackmat();
+                        } else {
+                            if (stackmat != null) {
+                                stackmat.stop();
+                                stackmat = null;
+                            }
+                            bluetoothTools.setScanAllTimingDevices(false);
+                            boolean wcaWasEnabled = wca || inspectionAlert;
+                            disableSmartTimerWcaSettings(false);
+                            if (wcaWasEnabled) {
+                                Toast.makeText(context, R.string.smart_timer_wca_auto_disabled, Toast.LENGTH_SHORT).show();
+                            }
+                            startBleScanFlow();
+                        }
+                        if (wasSmartCubeMode && !isSmartCubeMode()) {
+                            hideTimerPageCubeState();
+                            showScrambleView();
+                        }
+                        //else
+                        setPref("tiway", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 6: //更新方式
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[1], timerUpdate, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (timerUpdate == i) return;
+                        timerUpdate = i;
+                        stAdapter.setText(position, itemStr[1][i]);
+                        setPref("timerupd", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 7: //计时精度
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[2], timerAccuracy, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (timerAccuracy == i) return;
+                        timerAccuracy = i;
+                        stAdapter.setText(position, itemStr[2][i]);
+                        setPref("prec", i != 0);
+                        if (enterTime == 0) setTimerText("0" + (decimalMark == 0 ? "." : ",") + (i == 0 ? "00" : "000"));
+                        if (result.length() > 0) {
+                            btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+                            result.calcAvg();
+                            if (multiPhase > 0) result.calcMpMean();
+                            resAdapter.notifyDataSetChanged();
+                        }
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 9: //分段计时
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[3], multiPhase, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (multiPhase == i) return;
+                        multiPhase = i;
+                        stAdapter.setText(position, itemStr[3][i]);
+                        result.calcAvg();
+                        if (i == 0) {
+                            result.clearMulTime();
+                            tvMulPhase.setText("");
+                        } else {
+                            result.initMulTime();
+                            if (result.length() > 0)
+                                result.getMulTime();
+                            result.calcMpMean();
+                        }
+                        resetSortToGlobalOrder();
+                        setPref("multp", i);
+                        sessionManager.setMultiPhase(sessionIdx, i);
+                        resAdapter.reload();
+                        setResultTitle();
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 10: //模拟SS
+                simulateSS = !simulateSS;
+                stAdapter.setCheck(position, simulateSS);
+                setPref("simss", simulateSS);
+                break;
+            case 11: //显示统计简要
+                showStat = !showStat;
+                tvStat.setVisibility(showStat ? View.VISIBLE : View.GONE);
+                stAdapter.setCheck(position, showStat);
+                setPref("showstat", showStat);
+                break;
+            case 12:    //拍桌子停表
+                dropToStop = !dropToStop;
+                stAdapter.setCheck(position, dropToStop);
+                setPref("drop", dropToStop);
+                break;
+            case ST_SMART_ORIENTATION:
+                new AlertDialog.Builder(context).setSingleChoiceItems(getSmartCubeOrientationLabels(), smartCubeSolveOrientation, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (smartCubeSolveOrientation == i) return;
+                        smartCubeSolveOrientation = i;
+                        stAdapter.setText(position, getSmartCubeOrientationLabel(i));
+                        setPref("scori", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case ST_SMART_TRAINING_ORIENTATION:
+                new AlertDialog.Builder(context).setSingleChoiceItems(getSmartCubeOrientationLabels(), smartCubeTrainingOrientation, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (smartCubeTrainingOrientation == i) return;
+                        smartCubeTrainingOrientation = i;
+                        stAdapter.setText(position, getSmartCubeOrientationLabel(i));
+                        setPref("sctori", i);
+                        clearSmartCubeScrambleCache();
+                        if (!refreshSmartCubeTrainingScrambleNow()) {
+                            updateScrambleTextView();
+                            refreshTimerPageSmartCubeUi();
+                        }
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case ST_SMART_SOLVE_METHOD:
+                new AlertDialog.Builder(context).setSingleChoiceItems(R.array.opt_smart_solve_method, smartCubeSolveMethod, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (smartCubeSolveMethod == i) return;
+                        smartCubeSolveMethod = i;
+                        stAdapter.setText(position, getResources().getStringArray(R.array.opt_smart_solve_method)[i]);
+                        setPref("scmethod", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case ST_SMART_SCRAMBLE_PROGRESS:
+                new AlertDialog.Builder(context).setSingleChoiceItems(R.array.opt_smart_scramble_progress, smartCubeScrambleProgressStyle, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (smartCubeScrambleProgressStyle == i) return;
+                        smartCubeScrambleProgressStyle = i;
+                        stAdapter.setText(position, getResources().getStringArray(R.array.opt_smart_scramble_progress)[i]);
+                        setPref("scadv", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case ST_SMART_GYRO_FOLLOW:
+                smartCubeGyroFollow = !smartCubeGyroFollow;
+                stAdapter.setCheck(position, smartCubeGyroFollow);
+                setPref("scgyro", smartCubeGyroFollow);
+                refreshSmartCubeGyroFollowViews();
+                break;
+            case ST_SMART_LAYOUT:
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[17], smartCubeLayoutMode, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (smartCubeLayoutMode == i) return;
+                        smartCubeLayoutMode = i;
+                        stAdapter.setText(position, itemStr[17][i]);
+                        setPref("sclayout", i);
+                        if (shouldShowTimerPageCubeState()) {
+                            setSmartCubeImageSize();
+                        }
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 20:    //等宽打乱字体
+                monoFont = !monoFont;
+                stAdapter.setCheck(position, monoFont);
+                setPref("monoscr", monoFont);
+                setScrambleFont();
+                break;
+            case 21:    //显示打乱状态
+                showImage = !showImage;
+                stAdapter.setCheck(position, showImage);
+                setPref("showscr", showImage);
+                if (showImage) {
+                    showScrambleView();
+                } else {
+                    scrambleView.setVisibility(View.GONE);
+                    hideTimerPageCubeState();
+                }
+                break;
+            case 23:    //EG打乱
+                new AlertDialog.Builder(context).setMultiChoiceItems(R.array.opt_eg_scramble, egIdx, new DialogInterface.OnMultiChoiceClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i, boolean b) {
+                        egIdx[i] = b;
+                        if (i < 3) {
+                            if (b) egtype |= (4 >> i);
+                            else egtype &= (-5 >> i);
+                            setPref("egtype", egtype);
+                        } else {
+                            setPref("egoll", Utils.getEgOll());
+                            Utils.setEgOll();
+                        }
+                    }
+                }).setNegativeButton(R.string.btn_close, null).show();
+                break;
+            case 25:    //确认时间
+                promptToSave = !promptToSave;
+                stAdapter.setCheck(position, promptToSave);
+                setPref("conft", promptToSave);
+                break;
+            case 26:	//滚动平均1类型
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[14], avg1Type, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (avg1Type == i) return;
+                        avg1Type = i;
+                        stAdapter.setText(position, itemStr[14][i]);
+                        setPref("l1tp", i);
+                        int avg = (i * 1000 + avg1len - 1) * 2000 + (avg2Type * 1000 + avg2len - 1);
+                        sessionManager.setAverage(sessionIdx, avg);
+                        if (result.length() > 0) {
+                            result.calcAvg();
+                            setStatsLabel();
+                        }
+                        if (multiPhase == 0) {
+                            setResultTitle();
+                            if (result.length() > 0) {
+                                if (sortType == 3 || sortType == 4 || sortType == -2)
+                                    result.sortResult();
+                                resAdapter.notifyDataSetChanged();
+                            }
+                        }
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 28:    //滚动平均2类型
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[4], avg2Type, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (avg2Type == i) return;
+                        avg2Type = i;
+                        stAdapter.setText(position, itemStr[4][i]);
+                        setPref("l2tp", i);
+                        int avg = (avg1Type * 1000 + avg1len - 1) * 2000 + (i * 1000 + avg2len - 1);
+                        sessionManager.setAverage(sessionIdx, avg);
+                        if (result.length() > 0) {
+                            result.calcAvg();
+                            setStatsLabel();
+                        }
+                        if (multiPhase == 0) {
+                            setResultTitle();
+                            if (result.length() > 0) {
+                                if (sortType == 5 || sortType == 6 || sortType == -3)
+                                    result.sortResult();
+                                resAdapter.notifyDataSetChanged();
+                            }
+                        }
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 27:    //平均1长度
+            case 29:    //平均2长度
+                LayoutInflater factory = LayoutInflater.from(context);
+                int layoutId = R.layout.dialog_input;
+                view = factory.inflate(layoutId, null);
+                editText = view.findViewById(R.id.edit_text);
+                editText.setText(String.valueOf(position==27 ? avg1len : avg2len));
+                editText.setSelection(editText.getText().length());
+                new AlertDialog.Builder(context).setTitle(R.string.enter_length).setView(view)
+                        .setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                String str = editText.getText().toString();
+                                if (TextUtils.isEmpty(str)) return;
+                                int len = Integer.parseInt(str);
+                                if (len < 3 || len > 1000) {
+                                    Toast.makeText(context, getString(R.string.invalid_input), Toast.LENGTH_LONG).show();
+                                    return;
+                                }
+                                if (position == 27) {
+                                    avg1len = len;
+                                    setPref("l1len", len);
+                                } else {
+                                    avg2len = len;
+                                    setPref("l2len", len);
+                                }
+                                int avg = (avg1Type * 1000 + avg1len - 1) * 2000 + (avg2Type * 1000 + avg2len - 1);
+                                sessionManager.setAverage(sessionIdx, avg);
+                                stAdapter.setText(position, String.valueOf(len));
+                                if (result.length() > 0) {
+                                    result.calcAvg();
+                                    setStatsLabel();
+                                }
+                                if (multiPhase == 0) {
+                                    setResultTitle();
+                                    if (sortType > 2 || sortType < -1)
+                                        result.sortResult();
+                                    resAdapter.notifyDataSetChanged();
+                                }
+                                Utils.hideKeyboard(editText);
+                            }
+                        }).setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                Utils.hideKeyboard(editText);
+                            }
+                }).show();
+                Utils.showKeyboard(editText);
+                break;
+            case 30:	//自动选择分组
+                selectSession = !selectSession;
+                stAdapter.setCheck(position, selectSession);
+                setPref("selses", selectSession);
+                break;
+            case 32:    //三阶求解
+                Cube333SolverDialog.newInstance(position).show(getSupportFragmentManager(), "333Solver");
+                break;
+            case 33:    //SQ1复形
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[12], solveSq1, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (solveSq1 == i) return;
+                        solveSq1 = i;
+                        stAdapter.setText(position, itemStr[12][i]);
+                        setPref("sq1s", i);
+                        if (currentScramble.isSqScramble()) {
+                            if (i > 0) {
+                                final int sel = i;
+                                new Thread() {
+                                    public void run() {
+                                        handler.sendEmptyMessage(4);
+                                        currentScramble.updateHint(sel);
+                                        showScramble();
+                                        scrambleState = SCRAMBLING_NEXT;
+                                        if (nextScramble != null)
+                                            nextScramble.updateHint(sel);
+                                        scrambleState = SCRAMBLE_DONE;
+                                        handler.sendEmptyMessage(26);
+                                    }
+                                }.start();
+                            } else {
+                                currentScramble.updateHint(0);
+                                tvScramble.setText(currentScramble.getScramble());
+                                if (nextScramble != null)
+                                    nextScramble.updateHint(0);
+                            }
+                        }
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 34:    //二阶求解
+                Cube222SolverDialog.newInstance(position).show(getSupportFragmentManager(), "222Solver");
+                break;
+            case 35:    //Pyraminx V求解
+                final boolean[] chks = new boolean[4];
+                for (int i=0; i<4; i++)
+                    chks[i] = (((solvePyr >> i) & 1) != 0);
+                new AlertDialog.Builder(context).setMultiChoiceItems(R.array.opt_solve_pyr, chks, new DialogInterface.OnMultiChoiceClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i, boolean b) {
+                        int s = 0;
+                        for (int j=0; j<4; j++)
+                            if (chks[j]) s |= 1 << j;
+                        setPref("pyrv", solvePyr = s);
+                        if (currentScramble.isPyrScramble()) {
+                            if (s > 0) {
+                                final int sel = s;
+                                new Thread() {
+                                    public void run() {
+                                        handler.sendEmptyMessage(4);
+                                        currentScramble.updateHint(sel);
+                                        showScramble();
+                                        scrambleState = SCRAMBLING_NEXT;
+                                        if (nextScramble != null)
+                                            nextScramble.updateHint(sel);
+                                        scrambleState = SCRAMBLE_DONE;
+                                        handler.sendEmptyMessage(26);
+                                    }
+                                }.start();
+                            } else {
+                                currentScramble.updateHint(0);
+                                tvScramble.setText(currentScramble.getScramble());
+                                if (nextScramble != null)
+                                    nextScramble.updateHint(0);
+                            }
+                        }
+                    }
+                }).setNegativeButton(R.string.btn_close, null).show();
+                break;
+            //配色设置
+            case 37:    //n阶
+                int[] cs = {sp.getInt("csn1", Color.YELLOW), sp.getInt("csn2", Color.BLUE), sp.getInt("csn3", Color.RED),
+                        sp.getInt("csn4", Color.WHITE), sp.getInt("csn5", 0xff009900), sp.getInt("csn6", 0xffff9900)};
+                colorSchemeView = new ColorSchemeView(this, APP.getPixel(290), cs, 1);
+                AlertDialog dialog = new AlertDialog.Builder(context).setTitle(getString(R.string.scheme_cube)).setView(colorSchemeView)
+                        .setNegativeButton(R.string.btn_close, null).setNeutralButton(R.string.scheme_reset, null).show();
+                WindowManager.LayoutParams params = dialog.getWindow().getAttributes();
+                params.width = APP.getPixel(320);
+                dialog.getWindow().setAttributes(params);
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(getResources().getColor(R.color.colorRed));
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {    //配色复位
+                        int[] color = {0xffffff00, 0xff0000ff, 0xffff0000, 0xffffffff, 0xff009900, 0xffff9900};
+                        for (int i=1; i<7; i++) {
+                            delPref("csn" + i);
+                        }
+                        colorSchemeView.setColor(color);
+                        colorSchemeView.invalidate();
+                    }
+                });
+                break;
+            case 38:    //金字塔
+                cs = new int[] {sp.getInt("csp1", Color.RED), sp.getInt("csp2", 0xff009900),
+                        sp.getInt("csp3", Color.BLUE), sp.getInt("csp4", Color.YELLOW)};
+                colorSchemeView = new ColorSchemeView(this, (int) (dpi * 290), cs, 2);
+                dialog = new AlertDialog.Builder(context).setTitle(getString(R.string.scheme_pyrm)).setView(colorSchemeView)
+                        .setNegativeButton(R.string.btn_close, null).setNeutralButton(R.string.scheme_reset, null).show();
+                params = dialog.getWindow().getAttributes();
+                params.width = APP.getPixel(320);
+                dialog.getWindow().setAttributes(params);
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(getResources().getColor(R.color.colorRed));
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        int[] color = {0xffff0000, 0xff009900, 0xff0000ff, 0xffffff00};
+                        for (int i=1; i<5; i++) delPref("csp"+i);
+                        colorSchemeView.setColor(color);
+                        colorSchemeView.invalidate();
+                    }
+                });
+                break;
+            case 39:    //SQ1
+                cs = new int[] {sp.getInt("csq1", Color.WHITE), sp.getInt("csq2", 0xffff9900), sp.getInt("csq3", 0xff009900),
+                        sp.getInt("csq4", Color.YELLOW), sp.getInt("csq5", Color.RED), sp.getInt("csq6", Color.BLUE)};
+                colorSchemeView = new ColorSchemeView(this, (int) (dpi * 290), cs, 3);
+                dialog = new AlertDialog.Builder(context).setTitle(getString(R.string.scheme_sq)).setView(colorSchemeView)
+                        .setNegativeButton(R.string.btn_close, null).setNeutralButton(R.string.scheme_reset, null).show();
+                params = dialog.getWindow().getAttributes();
+                params.width = APP.getPixel(320);
+                dialog.getWindow().setAttributes(params);
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(getResources().getColor(R.color.colorRed));
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        int[] color = {0xffffffff, 0xffff9900, 0xff009900, 0xffffff00, 0xffff0000, 0xff0000ff};
+                        for (int i=1; i<7; i++) delPref("csq" + i);
+                        colorSchemeView.setColor(color);
+                        colorSchemeView.invalidate();
+                    }
+                });
+                break;
+            case 40:    //skewb
+                cs = new int[] {sp.getInt("csw1", Color.YELLOW), sp.getInt("csw2", Color.BLUE), sp.getInt("csw3", Color.RED),
+                        sp.getInt("csw4", Color.WHITE), sp.getInt("csw5", 0xff009900), sp.getInt("csw6", 0xffff9900)};
+                colorSchemeView = new ColorSchemeView(this, (int) (dpi * 290), cs, 4);
+                dialog = new AlertDialog.Builder(context).setTitle(getString(R.string.scheme_skewb)).setView(colorSchemeView)
+                        .setNegativeButton(R.string.btn_close, null).setNeutralButton(R.string.scheme_reset, null).show();
+                params = dialog.getWindow().getAttributes();
+                params.width = APP.getPixel(320);
+                dialog.getWindow().setAttributes(params);
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(getResources().getColor(R.color.colorRed));
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        int[] color = {0xffffff00, 0xff0000ff, 0xffff0000, 0xffffffff, 0xff009900, 0xffff9900};
+                        for (int i=1; i<7; i++) delPref("csw"+i);
+                        colorSchemeView.setColor(color);
+                        colorSchemeView.invalidate();
+                    }
+                });
+                break;
+            case 41:    //五魔
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[7], megaColorScheme, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (megaColorScheme == i) return;
+                        megaColorScheme = i;
+                        stAdapter.setText(position, itemStr[7][i]);
+                        setPref("minxc", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            //界面设置
+            case 43:    //计时器字体
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[8], timerFont, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (timerFont == i) return;
+                        timerFont = i;
+                        stAdapter.setText(position, itemStr[8][i]);
+                        setTimerFont();
+                        setPref("tfont", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case ST_APP_LANGUAGE:    //应用语言
+                new AlertDialog.Builder(context).setSingleChoiceItems(R.array.opt_app_language, appLanguage, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (appLanguage == i) return;
+                        appLanguage = i;
+                        setPref("applang", i);
+                        APP.applyAppLanguage(i);
+                        dialogInterface.dismiss();
+                        recreate();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 45:    //背景颜色
+                AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(context);
+                View dialogLayout = LayoutInflater.from(context).inflate(R.layout.dialog_color_picker, null);
+                RadioGroup rgMode = dialogLayout.findViewById(R.id.rg_mode);
+                final LineColorPicker colorPicker = dialogLayout.findViewById(R.id.color_picker_primary);
+                final LineColorPicker colorPicker2 = dialogLayout.findViewById(R.id.color_picker_primary_2);
+                final TextView dialogTitle = dialogLayout.findViewById(R.id.dialog_title);
+                //RadioButton rbLight = dialogLayout.findViewById(R.id.rb_light);
+                //RadioButton rbDark = dialogLayout.findViewById(R.id.rb_dark);
+                final int[] color = {0, colors[0], colors[5]};
+                rgMode.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(RadioGroup radioGroup, int i) {
+                        int[] baseColors = ColorPalette.getBaseColors(context);
+                        switch (i) {
+                            case R.id.rb_light:
+                                color[0] = 0;
+                                color[2] = colorPicker2.getColor();
+                                //color[1] = colors[0];
+                                break;
+                            case R.id.rb_dark:
+                                color[0] = 1;
+                                color[1] = colorPicker2.getColor();
+                                //color[2] = colors[5];
+                                break;
+                        }
+                        for (int c : baseColors) {
+                            for (int c2 : ColorPalette.getColors(context, c)) {
+                                if ((color[0] == 0 && c2 == color[1]) || (color[0] == 1 && c2 == color[2])) {
+                                    colorPicker.setSelectedColor(c);
+                                    colorPicker2.setColors(ColorPalette.getColors(context, c));
+                                    colorPicker2.setSelectedColor(c2);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                dialogTitle.setText(R.string.background_color);
+                //((CardView) dialogLayout.findViewById(R.id.dialog_card)).setCardBackgroundColor(-1);
+                colorPicker2.setOnColorChangedListener(new OnColorChangedListener() {
+                    @Override
+                    public void onColorChanged(int c) {
+                        dialogTitle.setBackgroundColor(c);
+                        if (Utils.grayScale(c) > 200)
+                            dialogTitle.setTextColor(0xff212121);
+                        else dialogTitle.setTextColor(-1);
+                        //chooser.onColorChanged(c);
+                    }
+                });
+                colorPicker.setOnColorChangedListener(new OnColorChangedListener() {
+                    @Override
+                    public void onColorChanged(int c) {
+                        colorPicker2.setColors(ColorPalette.getColors(context, colorPicker.getColor()));
+                        colorPicker2.setSelectedColor(colorPicker.getColor());
+                    }
+                });
+                int[] baseColors = ColorPalette.getBaseColors(context);
+                colorPicker.setColors(baseColors);
+                for (int i : baseColors) {
+                    for (int i2 : ColorPalette.getColors(context, i)) {
+                        if (i2 == colors[0]) {
+                            colorPicker.setSelectedColor(i);
+                            colorPicker2.setColors(ColorPalette.getColors(context, i));
+                            colorPicker2.setSelectedColor(i2);
+                            break;
+                        }
+                    }
+                }
+                dialogBuilder.setView(dialogLayout);
+                dialogBuilder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        //chooser.onDialogDismiss();
+                    }
+                });
+                dialogBuilder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        AlertDialog alertDialog = (AlertDialog) dialog;
+                        alertDialog.setOnDismissListener(null);
+                        //Log.w("dct", "背景颜色 "+Integer.toHexString(colorPicker2.getColor()));
+                        //chooser.onColorSelected(colorPicker2.getColor());
+                        if (color[0] == 0)
+                            color[1] = colorPicker2.getColor();
+                        else color[2] = colorPicker2.getColor();
+                        //int color = colorPicker2.getColor();
+                        colors[0] = color[1];
+                        setPref("cl0", color[1]);
+                        colors[5] = color[2];
+                        setPref("cl5", color[2]);
+                        if (useBgcolor) {
+                            setBackgroundColor();
+                        }
+                        //useBgcolor = true;
+                        dialog.dismiss();
+                    }
+                });
+                dialogBuilder.show();
+                break;
+            case 46:    //文字颜色
+                new ColorPickerDialog(context, new int[] {colors[1], colors[6]}, new int[] {-1, -1}, false, new OnColorPickerListener() {
+                    @Override
+                    public void onColorCancel(ColorPickerDialog dialog) { }
+
+                    @Override
+                    public void onColorChange(ColorPickerDialog dialog, int[] color) { }
+
+                    @Override
+                    public void onColorConfirm(ColorPickerDialog dialog, int[] color) {
+                        //Log.w("dct", "选择颜色 "+Integer.toHexString(color));
+                        Log.w("dct", "light="+Integer.toHexString(color[0])+", dark="+Integer.toHexString(color[1]));
+                        colors[1] = color[0];
+                        colors[6] = color[1];
+                        setPref("cl1", color[0]);
+                        setPref("cl6", color[1]);
+                        setTextsColor();
+                        setIconColor();
+                    }
+
+                    @Override
+                    public void onColorReset(ColorPickerDialog dialog, int[] color) {
+                        colors[1] = color[0];
+                        colors[6] = color[1];
+                        delPref("cl1");
+                        delPref("cl6");
+                        setTextsColor();
+                        setIconColor();
+                    }
+                }).show();
+                break;
+            case 47:    //背景图片
+                selectPic();
+                break;
+            case 48:    //显示背景图
+                if (useBgcolor) {
+                    setBackground();
+                } else setBackgroundColor();
+                useBgcolor = !useBgcolor;
+                //Log.w("dct", ""+useBgcolor);
+                stAdapter.setCheck(position, !useBgcolor);
+                setPref("bgcolor", useBgcolor);
+                break;
+            case 50:    //最快单次颜色
+                new ColorPickerDialog(context, new int[] {colors[2]}, new int[] {0xffff00ff}, true, new OnColorPickerListener() {
+                    @Override
+                    public void onColorCancel(ColorPickerDialog dialog) { }
+
+                    @Override
+                    public void onColorChange(ColorPickerDialog dialog, int[] color) { }
+
+                    @Override
+                    public void onColorConfirm(ColorPickerDialog dialog, int[] color) {
+                        //Log.w("dct", "选择颜色 "+Integer.toHexString(color));
+                        colors[2] = color[0];
+                        setPref("cl2", colors[2]);
+                        resAdapter.notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onColorReset(ColorPickerDialog dialog, int[] color) {
+                        colors[2] = color[0];
+                        delPref("cl2");
+                        resAdapter.notifyDataSetChanged();
+                    }
+                }).show();
+                break;
+            case 51:    //最慢单次颜色
+                new ColorPickerDialog(context, new int[] {colors[3]}, new int[] {0xffee3333}, true, new OnColorPickerListener() {
+                    @Override
+                    public void onColorCancel(ColorPickerDialog dialog) { }
+
+                    @Override
+                    public void onColorChange(ColorPickerDialog dialog, int[] color) { }
+
+                    @Override
+                    public void onColorConfirm(ColorPickerDialog dialog, int[] color) {
+                        //Log.w("dct", "选择颜色 "+Integer.toHexString(color));
+                        colors[3] = color[0];
+                        setPref("cl3", colors[3]);
+                        resAdapter.notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onColorReset(ColorPickerDialog dialog, int[] color) {
+                        colors[3] = color[0];
+                        delPref("cl3");
+                        resAdapter.notifyDataSetChanged();
+                    }
+                }).show();
+                break;
+            case 52:    //最快平均颜色
+                new ColorPickerDialog(context, new int[] {colors[4]}, new int[] {0xff009900}, true, new OnColorPickerListener() {
+                    @Override
+                    public void onColorCancel(ColorPickerDialog dialog) { }
+
+                    @Override
+                    public void onColorChange(ColorPickerDialog dialog, int[] color) { }
+
+                    @Override
+                    public void onColorConfirm(ColorPickerDialog dialog, int[] color) {
+                        //Log.w("dct", "选择颜色 "+Integer.toHexString(color));
+                        colors[4] = color[0];
+                        setPref("cl4", colors[4]);
+                        resAdapter.notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onColorReset(ColorPickerDialog dialog, int[] color) {
+                        colors[4] = color[0];
+                        delPref("cl4");
+                        resAdapter.notifyDataSetChanged();
+                    }
+                }).show();
+                break;
+            //手势管理
+            case 54:    //左
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[15], swipeType[0], new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (swipeType[0] == i) return;
+                        swipeType[0] = i;
+                        stAdapter.setText(position, itemStr[15][i]);
+                        setPref("gesturel", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 55:    //右
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[15], swipeType[1], new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (swipeType[1] == i) return;
+                        swipeType[1] = i;
+                        stAdapter.setText(position, itemStr[15][i]);
+                        setPref("gesturer", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 56:    //上
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[15], swipeType[2], new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (swipeType[2] == i) return;
+                        swipeType[2] = i;
+                        stAdapter.setText(position, itemStr[15][i]);
+                        setPref("gestureu", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 57:    //下
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[15], swipeType[3], new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (swipeType[3] == i) return;
+                        swipeType[3] = i;
+                        stAdapter.setText(position, itemStr[15][i]);
+                        setPref("gestured", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            //硬件设置
+            case 59:    //屏幕常亮
+                if (screenOn) {
+                    if (timer.getTimerState() != 1) releaseWakeLock();
+                } else acquireWakeLock();
+                screenOn = !screenOn;
+                stAdapter.setCheck(position, screenOn);
+                setPref("scron", screenOn);
+                break;
+            case 60:    //触感反馈
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[10], vibrateType, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (vibrateType == i) return;
+                        vibrateType = i;
+                        stAdapter.setText(position, itemStr[10][i]);
+                        setPref("vibra", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 61:    //触感时间
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[11], vibrateTime, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (vibrateTime == i) return;
+                        vibrateTime = i;
+                        stAdapter.setText(position, itemStr[11][i]);
+                        setPref("vibtime", i);
+                        dialogInterface.dismiss();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+            case 62:    //屏幕方向
+                new AlertDialog.Builder(context).setSingleChoiceItems(ITEMS_ID[9], screenOri, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (screenOri == i) return;
+                        screenOri = i;
+                        stAdapter.setText(position, itemStr[9][i]);
+                        setPref("screenori", i);
+                        dialogInterface.dismiss();
+                        setRequestedOrientation(SCREEN_ORIENTATION[i]);
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+                break;
+        }
+    }
+
+    private SensorEventListener mSensorEventListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                float x = event.values[0];
+                float y = event.values[1];
+                float z = event.values[2];
+                double acc = Math.sqrt(x * x + y * y + z * z);
+                //tvTest.setText(String.format(Locale.getDefault(), "%.3f", acc));
+                if (lastAcc != 0) {
+                    if (Math.abs(acc - lastAcc) > sensitivity && dropToStop) {
+                        if (timer.getTimerState() == DCTTimer.RUNNING && timer.time > 200) {   //停止计时
+                            setVisibility(true);
+                            timer.timeEnd = SystemClock.uptimeMillis();
+                            timer.count();
+                            if (!wca || currentScramble.isBlindfoldScramble()) { penaltyTime = 0; isDNF = false;}
+                            save((int) timer.time);
+                            timer.setTimerState(0);
+                            if (!screenOn) releaseWakeLock();
+                        }
+                        //tvTest.setBackgroundColor(0x88dddddd);
+                    } //else tvTest.setBackgroundColor(0);
+                }
+                lastAcc = acc;
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+
+        }
+    };
+
+    public void show333Hint(final int idx) {
+        if (currentScramble.is333Scramble()) {
+            if (idx == 0) {
+                currentScramble.updateHint(0);
+                tvScramble.setText(currentScramble.getScramble());
+                if (nextScramble != null)
+                    nextScramble.updateHint(0);
+            } else new Thread() {
+                public void run() {
+                    handler.sendEmptyMessage(4);
+                    currentScramble.updateHint(idx);
+                    showScramble();
+                    scrambleState = SCRAMBLING_NEXT;
+                    if (nextScramble != null)
+                        nextScramble.updateHint(idx);
+                    scrambleState = SCRAMBLE_DONE;
+                    handler.sendEmptyMessage(26);
+                }
+            }.start();
+        }
+    }
+
+    public void show222Hint(final int idx) {
+        if (currentScramble.is222Scramble()) {
+            if (idx == 0) {
+                currentScramble.updateHint(0);
+                tvScramble.setText(currentScramble.getScramble());
+                if (nextScramble != null)
+                    nextScramble.updateHint(0);
+            } else new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    handler.sendEmptyMessage(4);
+                    currentScramble.updateHint(idx);
+                    showScramble();
+                    scrambleState = SCRAMBLING_NEXT;
+                    if (nextScramble != null)
+                        nextScramble.updateHint(idx);
+                    scrambleState = SCRAMBLE_DONE;
+                    handler.sendEmptyMessage(26);
+                }
+            }).start();
+        }
+    }
+
+    private void setupSettingSectionTabs(final Map<Integer, String> headers) {
+        settingSectionScroll = findViewById(R.id.setting_section_scroll);
+        settingSectionTabs = findViewById(R.id.setting_section_tabs);
+        settingSectionPositions.clear();
+        settingSectionTabViews.clear();
+        activeSettingSection = -1;
+        settingSectionTabs.removeAllViews();
+
+        settingSectionPositions.addAll(headers.keySet());
+        Collections.sort(settingSectionPositions);
+        for (int i = 0; i < settingSectionPositions.size(); i++) {
+            final int index = i;
+            final int position = settingSectionPositions.get(i);
+            TextView tab = new TextView(context);
+            tab.setText(headers.get(position));
+            tab.setTextSize(14);
+            tab.setSingleLine(true);
+            tab.setGravity(Gravity.CENTER);
+            tab.setPadding(Math.round(dpi * 14), 0, Math.round(dpi * 14), 0);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, Math.round(dpi * 32));
+            lp.setMargins(0, 0, Math.round(dpi * 6), 0);
+            settingSectionTabs.addView(tab, lp);
+            settingSectionTabViews.add(tab);
+            tab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    setActiveSettingSection(index);
+                    RecyclerView.LayoutManager manager = rvSetting.getLayoutManager();
+                    if (manager instanceof LinearLayoutManager) {
+                        ((LinearLayoutManager) manager).scrollToPositionWithOffset(position, 0);
+                    } else {
+                        rvSetting.scrollToPosition(position);
+                    }
+                }
+            });
+        }
+
+        rvSetting.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                updateSettingSectionByScroll();
+            }
+        });
+        rvSetting.post(new Runnable() {
+            @Override
+            public void run() {
+                updateSettingSectionByScroll();
+            }
+        });
+    }
+
+    private void updateSettingSectionByScroll() {
+        if (settingSectionPositions.isEmpty() || rvSetting == null) return;
+        RecyclerView.LayoutManager manager = rvSetting.getLayoutManager();
+        if (!(manager instanceof LinearLayoutManager)) return;
+        int firstVisible = ((LinearLayoutManager) manager).findFirstVisibleItemPosition();
+        if (firstVisible == RecyclerView.NO_POSITION) return;
+        int active = 0;
+        for (int i = 0; i < settingSectionPositions.size(); i++) {
+            if (firstVisible >= settingSectionPositions.get(i)) active = i;
+            else break;
+        }
+        setActiveSettingSection(active);
+    }
+
+    private void setActiveSettingSection(final int active) {
+        if (active < 0 || active >= settingSectionTabViews.size() || active == activeSettingSection) return;
+        activeSettingSection = active;
+        for (int i = 0; i < settingSectionTabViews.size(); i++) {
+            TextView tab = settingSectionTabViews.get(i);
+            if (i == active) {
+                tab.setTextColor(ContextCompat.getColor(context, R.color.colorAccent));
+                tab.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                tab.setBackgroundResource(R.drawable.setting_section_tab_active);
+            } else {
+                tab.setTextColor(ContextCompat.getColor(context, R.color.colorGray2));
+                tab.setTypeface(Typeface.DEFAULT, Typeface.NORMAL);
+                tab.setBackgroundColor(Color.TRANSPARENT);
+            }
+        }
+        final View activeTab = settingSectionTabViews.get(active);
+        settingSectionScroll.post(new Runnable() {
+            @Override
+            public void run() {
+                int scrollX = activeTab.getLeft() - (settingSectionScroll.getWidth() - activeTab.getWidth()) / 2;
+                settingSectionScroll.smoothScrollTo(Math.max(0, scrollX), 0);
+            }
+        });
+    }
+
+    public void updateSettingList(int position, String text) {
+        stAdapter.setText(position, text);
+    }
+
+    public String getSmartCubeOrientationLabel(int orientationIndex) {
+        String[] faces = getResources().getStringArray(R.array.opt_smart_cube_faces);
+        int[] pair = Utils.getSmartCubeOrientationPair(orientationIndex);
+        return getString(R.string.smart_cube_orientation_format, faces[pair[0]], faces[pair[1]]);
+    }
+
+    private String[] getSmartCubeOrientationLabels() {
+        String[] labels = new String[Utils.SMART_CUBE_ORIENTATION_FACES.length];
+        for (int i = 0; i < labels.length; i++) {
+            labels[i] = getSmartCubeOrientationLabel(i);
+        }
+        return labels;
+    }
+
+    public void updatePref(int position, int progress) {
+        switch (position) {
+            case ST_START_DELAY: //启动延时
+                freezeTime = progress;
+                setPref("tapt", freezeTime);
+                break;
+            case ST_SENSITIVITY:    //灵敏度
+                sensitivity = (progress + 5) / 100d;
+                setPref("sensity", progress + 5);
+                break;
+            case ST_SCR_FONT: //打乱字体
+                scrambleSize = progress + 12;
+                setScrambleSize();
+                setPref("stsize", scrambleSize);
+                break;
+            case ST_IMAGE_SIZE: //打乱状态
+                imageSize = progress * 10 + 160;
+                if (!shouldShowTimerPageCubeState()) {
+                    setImageSize();
+                }
+                setPref("svsize", imageSize);
+                break;
+            case ST_SMART_CUBE_SIZE: //虚拟魔方大小
+                smartCubeSize = progress * 10 + 160;
+                if (shouldShowTimerPageCubeState() && !shouldUseSmartCubeImmersiveLayout()) {
+                    setSmartCubeImageSize();
+                }
+                setPref("scvsize", smartCubeSize);
+                break;
+            case ST_TIMER_SIZE: //计时器大小
+                timerSize = progress + 50;
+                setTimerSize();
+                setPref("ttsize", timerSize);
+                break;
+            case ST_OPACITY: //不透明度
+                opacity = progress + 20;
+                if (!useBgcolor)
+                    setBackground();
+                setPref("opac", opacity);
+                break;
+        }
+    }
+
+    public void updatePref(int settingId, String detail) {
+        int position = stAdapter.getPositionBySettingId(settingId);
+        if (position < 0) return;
+        View v = rvSetting.getLayoutManager().findViewByPosition(position);
+        if (v == null) {
+            //Log.e("dct", "view为null");
+            return;
+        }
+        TextView tv = v.findViewById(R.id.list_detail);
+        tv.setText(detail);
+//        ((TextView) v.findViewById(R.id.tv_detail)).setText(""+progress);
+    }
+
+    public void resetAll() {
+        new AlertDialog.Builder(context).setTitle(R.string.confirm_reset)
+                .setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface arg0, int arg1) {
+                        APP.resetPref();
+                        removePref();
+                        setBackgroundColor();
+                        //setPrimaryDark();
+                        setViews();
+                        setTextsColor();
+                        setIconColor();
+                        resAdapter.notifyDataSetChanged();
+                        stAdapter.reload();
+                        releaseWakeLock();
+                    }
+                }).setNegativeButton(R.string.btn_cancel, null).show();
+    }
+
+    @SuppressLint("HandlerLeak")
+    private Handler handler = new Handler() {   //TODO
+        @Override
+        public void handleMessage(Message msg) {
+            int msw = msg.what;
+            switch (msw) {
+                case 0:
+                    tvScramble.setText(currentScramble.getScramble());
+                    //btnScramble.setVisibility(View.VISIBLE);
+                    break;
+                case 2:
+                    tvScramble.setText(getString(R.string.scrambling));
+                    btnScramble.setVisibility(View.INVISIBLE);
+                    pbScramble.setVisibility(View.VISIBLE);
+                    btnLeft.setEnabled(false);
+                    btnRight.setEnabled(false);
+                    break;
+                case 4: //打乱求解
+                    //tvScramble.setText(currentScramble.getScramble() + "\n\n" + getString(R.string.solving));
+                    btnScramble.setVisibility(View.INVISIBLE);
+                    pbScramble.setVisibility(View.VISIBLE);
+                    btnLeft.setEnabled(false);
+                    btnRight.setEnabled(false);
+                    break;
+                case 5: Toast.makeText(context, getString(R.string.save_fail), Toast.LENGTH_SHORT).show();	break;
+                case 6: Toast.makeText(context, getString(R.string.file_error), Toast.LENGTH_SHORT).show();    break;
+                case 7: Toast.makeText(context, getString(R.string.save_success), Toast.LENGTH_SHORT).show();	break;
+                case 8: Toast.makeText(context, R.string.conning, Toast.LENGTH_SHORT).show();	break;
+                case 9: Toast.makeText(context, getString(R.string.network_error), Toast.LENGTH_SHORT).show();	break;
+                case 11:
+                    Toast.makeText(context, getString(R.string.import_fail), Toast.LENGTH_SHORT).show();
+                    Intent intent = getIntent();
+                    finish();
+                    startActivity(intent);
+                    break;
+                case 12:
+                    Toast.makeText(context, getString(R.string.import_success), Toast.LENGTH_SHORT).show(); //TODO
+//                    APP.getInstance().initSession(context);
+//                    if (sessionIdx >= sessionManager.getSessionLength()) sessionIdx = 0;
+//                    multiPhase = sessionManager.getMultiPhase(sessionIdx);
+//                    getResult();
+//                    setResultTitle();
+//                    result.calcAvg();
+//                    if (multiPhase > 0) result.calcMpMean();
+//                    resAdapter.reload();
+//                    btnSession.setText(sessionManager.getSessionName(sessionIdx));
+//                    btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+//                    setStatsLabel();
+//                    Intent intent = getBaseContext().getPackageManager().getLaunchIntentForPackage(getBaseContext().getPackageName());
+//                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);    //与正常页面跳转一样可传递序列化数据,在Launch页面内获得
+//                    intent.putExtra("REBOOT","reboot");
+//                    startActivity(intent);
+                    intent = getIntent();
+                    finish();
+                    startActivity(intent);
+                    break;
+                case 14:
+                    scrambleView.setVisibility(View.GONE);
+                    hideTimerPageCubeState();
+                    break;
+                case 15:
+                    showTimerPageScrambleImage(bmScrambleView);
+                    break;
+                case 21:
+                    tvScramble.setText(getString(R.string.initializing) + " (0%) ...");
+                    btnScramble.setVisibility(View.INVISIBLE);
+                    pbScramble.setVisibility(View.VISIBLE);
+                    btnLeft.setEnabled(false);
+                    btnRight.setEnabled(false);
+                    break;
+                case 22: tvScramble.setText(getString(R.string.initializing) + " (10%) ..."); break;
+                case 23: tvScramble.setText(getString(R.string.initializing) + " (20%) ..."); break;
+                case 24: tvScramble.setText(getString(R.string.initializing) + " (30%) ..."); break;
+                case 25: int prog = (int) msg.obj;
+                    tvScramble.setText(getString(R.string.initializing) + " (" + (36 + prog / 44809) + "%) ..."); break;
+                case 26:
+                    if (timer.getTimerState() == DCTTimer.STOP || timer.getTimerState() == DCTTimer.READY)
+                        btnScramble.setVisibility(View.VISIBLE);
+                    pbScramble.setVisibility(View.GONE);
+                    btnLeft.setEnabled(true);
+                    btnRight.setEnabled(true);
+                    break;
+                default:
+                    progressDialog.setProgress(msw - 100);
+                    break;
+            }
+        }
+    };
+
+    private void removePref() { //移除配置
+        SharedPreferences.Editor edit = sp.edit();
+        edit.remove("cl0");	edit.remove("cl1");	edit.remove("cl2");
+        edit.remove("cl3");	edit.remove("cl4");	edit.remove("wca");
+        edit.remove("cxe");
+        edit.remove("l1am");	edit.remove("l2am");	edit.remove("mnxc");
+        edit.remove("prec");	edit.remove("mulp");	edit.remove("invs");
+        edit.remove("tapt");	edit.remove("intv");	edit.remove("opac");
+        edit.remove("mclr");	edit.remove("prom");	edit.remove("sq1s");
+        edit.remove("l1tp");	edit.remove("l2tp");    edit.remove("dark");
+        edit.remove("c2fl");
+        edit.remove("hidls");	edit.remove("conft");	edit.remove("list1");
+        edit.remove("list2");	edit.remove("timmh");	edit.remove("tiway");
+        edit.remove("cface");	edit.remove("cside");	edit.remove("srate");
+        edit.remove("tfont");	edit.remove("vibra");	edit.remove("sqshp");
+        edit.remove("fulls");	edit.remove("usess");	edit.remove("scron");
+        edit.remove("multp");	edit.remove("minxc");	edit.remove("simss");
+        edit.remove("l1len");	edit.remove("l2len");   edit.remove("sside");
+        edit.remove("pside");   edit.remove("rside");   edit.remove("group");
+        edit.remove("decim");   edit.remove("dform");
+        edit.remove("hidscr");	edit.remove("ttsize");	edit.remove("stsize");
+        edit.remove("cube2l");	edit.remove("scrgry");	edit.remove("selses");
+        edit.remove("ismulp");	edit.remove("svsize");
+        edit.remove("vibtime");	edit.remove("bgcolor");	edit.remove("ssvalue");
+        edit.remove("sensity");	edit.remove("monoscr");	edit.remove("showscr");
+        edit.remove("timerupd");	edit.remove("timeform");    edit.remove("showstat");
+        edit.remove("screenori");   edit.remove("resultorder");
+        edit.remove("scgyro"); edit.remove("scvsize"); edit.remove("sctori");
+        edit.remove("applang"); edit.remove("ganrobot_auto_connect");
+        edit.apply();
+    }
+
+    public void setPref(String key, int value) {
+        SharedPreferences.Editor edit = sp.edit();
+        edit.putInt(key, value);
+        edit.apply();
+    }
+
+    public void setPref(String key, String value) {
+        SharedPreferences.Editor edit = sp.edit();
+        edit.putString(key, value);
+        edit.apply();
+    }
+
+    public void setPref(String key, boolean value) {
+        SharedPreferences.Editor edit = sp.edit();
+        edit.putBoolean(key, value);
+        edit.apply();
+    }
+
+    public void delPref(String key) {
+        SharedPreferences.Editor edit = sp.edit();
+        edit.remove(key);
+        edit.apply();
+    }
+
+    //设置各种View、TextView颜色等 TODO
+    private void setViews() {
+        //打乱显示
+        //tvScramble.setTextSize(scrambleSize);
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(tvScramble, 10, scrambleSize, 2, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+        tvScramble.setTextColor(APP.getTextColor());
+        if (monoFont) setScrambleFont();
+
+        //打乱状态
+        setImageSize();
+        //计时器
+        tvTimer.setTextSize(timerSize);
+        setTimerFont();
+        setTimerColor(APP.getTextColor());
+        if (enterTime == 0) {
+            setTimerText("0" + (decimalMark == 0 ? "." : ",") + (timerAccuracy == 0 ? "00" : "000"));
+        } else if (enterTime == 1)
+            setTimerText("IMPORT");
+        else if (enterTime == 2) {
+            startStackmat();
+        } else {
+            setTimerText(getIdleTimerText());
+        }
+
+        //屏幕方向
+        setRequestedOrientation(SCREEN_ORIENTATION[screenOri]);
+        //分组平均
+        btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+        //统计简要
+        tvStat.setVisibility(showStat ? View.VISIBLE : View.GONE);
+        //tvStat.setTextSize(TypedValue.COMPLEX_UNIT_SP, 21);
+        tvStat.setTextColor(APP.getTextColor());
+        setStatsLabel();
+    }
+
+    private void setStatsLabel() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(result.getSolved()).append('/').append(result.length()).append("<br>");
+        if (result.isSessionBest()) sb.append("<b><u>");
+        sb.append("best: ").append(result.getBestTime());
+        if (result.isSessionBest()) sb.append("</u></b>");
+        sb.append("<br>");
+        if (result.isAvgBest(0)) sb.append("<b><u>");
+        sb.append(avg1Type == 0 ? "ao" : "mo").append(avg1len).append(": ");
+        sb.append(result.getRollingAvg1(result.length() - 1));
+        if (result.isAvgBest(0)) sb.append("</u></b>");
+        sb.append("<br>");
+        if (result.isAvgBest(1)) sb.append("<b><u>");
+        sb.append(avg2Type == 0 ? "ao" : "mo").append(avg2len).append(": ");
+        sb.append(result.getRollingAvg2(result.length() - 1));
+        if (result.isAvgBest(1)) sb.append("</u></b>");
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            tvStat.setText(Html.fromHtml(sb.toString(), Html.FROM_HTML_MODE_LEGACY));
+        } else {
+            tvStat.setText(Html.fromHtml(sb.toString()));
+        }
+
+    }
+
+    private void setVisibility(boolean v) {	//设置控件的隐藏 TODO
+        int vi = v ? View.VISIBLE : View.GONE;
+        tvScramble.setVisibility(vi);
+        if (showStat)
+            tvStat.setVisibility(vi);
+        btnScramble.setVisibility(vi);
+        if (currentScramble.getScrambleListSize() > 1) {
+            btnLeft.setVisibility(vi);
+            btnRight.setVisibility(vi);
+        }
+        toolbar.setVisibility(!v && shouldPreserveSmartCubeImmersiveLayoutSpace() ? View.INVISIBLE : vi);
+        if (isTimerTabActive() && shouldShowTimerPageCubeState()) {
+            scrambleView.setVisibility(View.GONE);
+            if (smartCube3DView != null) {
+                smartCube3DView.setAlpha(1f);
+                smartCube3DView.setVisibility(View.VISIBLE);
+            }
+        } else if (shouldShowScrambleImage()) {
+            hideTimerPageCubeState();
+            scrambleView.setVisibility(vi);
+        } else {
+            hideScrambleImage();
+            hideTimerPageCubeState();
+        }
+    }
+
+    private void setReadyHoldUi(boolean active) {
+        if (readyHoldUiActive == active) {
+            return;
+        }
+        readyHoldUiActive = active;
+        float alpha = active ? 0f : 1f;
+        tvScramble.setAlpha(alpha);
+        if (showStat) {
+            tvStat.setAlpha(alpha);
+        }
+        btnScramble.setAlpha(alpha);
+        btnLeft.setAlpha(alpha);
+        btnRight.setAlpha(alpha);
+        toolbar.setAlpha(alpha);
+        scrambleView.setAlpha(alpha);
+        if (smartCube3DView != null) {
+            smartCube3DView.setAlpha(active && shouldShowTimerPageCubeState() ? 1f : alpha);
+        }
+        tvMulPhase.setAlpha(alpha);
+        if (tvTest != null) {
+            tvTest.setAlpha(alpha);
+        }
+        tvTimer.setTranslationY(active ? -toolbar.getHeight() / 2f : 0f);
+    }
+
+    private void clearReadyHoldUiState() {
+        setReadyHoldUi(false);
+    }
+
+    private boolean shouldPreserveSmartCubeImmersiveLayoutSpace() {
+        return shouldUseSmartCubeImmersiveLayout();
+    }
+
+    public void setBackgroundColor() {
+        int color = APP.getBackgroundColor();
+        frame.setBackgroundColor(color);
+        int gray = Utils.grayScale(color);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {   //6.0
+            int visibility = gray > 200 ? View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR : 0;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && gray > 200) {
+                visibility |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            }
+            getWindow().getDecorView().setSystemUiVisibility(visibility);
+            getWindow().setStatusBarColor(color);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                getWindow().setNavigationBarColor(color);
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) { //5.0
+            if (gray > 200) {
+                getWindow().setStatusBarColor(0x44000000);
+            } else {
+                getWindow().setStatusBarColor(color);
+            }
+            getWindow().setNavigationBarColor(color);
+        }
+    }
+
+    public void setBackground() {
+        try {
+            Bitmap bm = Utils.getBitmap(context, dm, picUri, picPath);
+            bitmap = Utils.getBackgroundBitmap(dm, bm);
+            frame.setBackgroundDrawable(Utils.getBackgroundDrawable(context, dm, bitmap, opacity));
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (!TextUtils.isEmpty(picUri)) {
+                picUri = "";
+                setPref("picuri", "");
+            }
+            if (!TextUtils.isEmpty(picPath)) {
+                picPath = "";
+                setPref("picpath", "");
+            }
+            setBackgroundColor();
+            //Toast.makeText(context, "Error: "+e.getMessage(), Toast.LENGTH_SHORT).show();
+        } catch (OutOfMemoryError e) {
+            setBackgroundColor();
+            //Toast.makeText(context, "Error: "+e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public void setTimerColor(int color) {  //设置计时器颜色
+        tvTimer.setTextColor(color);
+        tvMulPhase.setTextColor(color);
+    }
+
+    public void setTimerText(String text) { //设置计时器文字
+        tvTimer.setText(text);
+    }
+
+    public void setTimerSize() {
+        tvTimer.setTextSize(timerSize);
+        applyStatsTextSize();
+        if (smartCubeImmersiveLayoutActive) {
+            applySmartCubeImmersivePhaseTextSize();
+        }
+    }
+
+    public void updateTime() {
+        if (bluetoothTools.getCube() != null) {
+            tvTimer.setText(StringUtils.timeToString(bluetoothTools.getCube().getResult()));
+        }
+    }
+
+    public CharSequence getScrambleText() {
+        return btnScramble.getText();
+    }
+
+    private void setTimerFont() {   //设置计时器字体
+        switch (timerFont) {
+            case 0:
+                tvTimer.setTypeface(Typeface.create("monospace", Typeface.NORMAL));
+                tvMulPhase.setTypeface(Typeface.create("monospace", Typeface.NORMAL));
+                break;
+            case 1:
+                tvTimer.setTypeface(Typeface.create("serif", Typeface.NORMAL));
+                tvMulPhase.setTypeface(Typeface.create("serif", Typeface.NORMAL));
+                break;
+            case 2:
+                tvTimer.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+                tvMulPhase.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+                break;
+            case 3:
+                tvTimer.setTypeface(Typeface.createFromAsset(getAssets(), "Ds.ttf"));
+                tvMulPhase.setTypeface(Typeface.createFromAsset(getAssets(), "Ds.ttf"));
+                break;
+            case 4:
+                tvTimer.setTypeface(Typeface.createFromAsset(getAssets(), "Df.ttf"));
+                tvMulPhase.setTypeface(Typeface.createFromAsset(getAssets(), "Df.ttf"));
+                break;
+            case 5:
+                tvTimer.setTypeface(Typeface.createFromAsset(getAssets(), "lcd.ttf"));
+                tvMulPhase.setTypeface(Typeface.createFromAsset(getAssets(), "lcd.ttf"));
+                break;
+        }
+    }
+
+    private void setScrambleFont() {    //设置打乱字体
+        if (monoFont)
+            tvScramble.setTypeface(Typeface.create("monospace", Typeface.NORMAL));
+        else tvScramble.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+    }
+
+    public void setScrambleSize() {
+        //tvScramble.setTextSize(scrambleSize);
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(tvScramble, 10, scrambleSize, 2, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+    }
+
+    public void setImageSize() {    //设置打乱图大小
+        applySmartCubeImmersiveLayout(false);
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int) (imageSize * dpi), (int) (imageSize * 3 * dpi) / 4);
+        params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+        params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        params.setMargins(0, 0, 0, APP.getPixel(5));
+        scrambleView.setLayoutParams(params);
+    }
+
+    private void setSmartCubeImageSize() {
+        if (shouldUseSmartCubeImmersiveLayout()) {
+            applySmartCubeImmersiveLayout(true);
+            return;
+        }
+        applySmartCubeImmersiveLayout(false);
+        int width = (int) (smartCubeSize * dpi * 0.67f);
+        int height = (int) (smartCubeSize * dpi * 0.76f);
+        int bottomMargin = APP.getPixel(5);
+        ViewGroup.LayoutParams current = smartCube3DView != null ? smartCube3DView.getLayoutParams() : scrambleView.getLayoutParams();
+        if (current instanceof RelativeLayout.LayoutParams) {
+            RelativeLayout.LayoutParams currentParams = (RelativeLayout.LayoutParams) current;
+            if (currentParams.width == width
+                    && currentParams.height == height
+                    && currentParams.bottomMargin == bottomMargin) {
+                return;
+            }
+        }
+        if (smartCube3DView != null) {
+            smartCube3DView.setLayoutParams(buildPreviewLayoutParams(width, height, bottomMargin));
+        }
+        scrambleView.setLayoutParams(buildPreviewLayoutParams(width, height, bottomMargin));
+    }
+
+    private RelativeLayout.LayoutParams buildPreviewLayoutParams(int width, int height, int bottomMargin) {
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
+        params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+        params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        params.setMargins(0, 0, 0, bottomMargin);
+        return params;
+    }
+
+    private boolean shouldUseSmartCubeImmersiveLayout() {
+        return smartCubeLayoutMode == 1
+                && getResources().getConfiguration().smallestScreenWidthDp >= SMART_CUBE_IMMERSIVE_MIN_SW_DP
+                && shouldShowTimerPageCubeState();
+    }
+
+    private void applySmartCubeImmersiveLayout(boolean active) {
+        if (active) {
+            View parent = scrambleView.getParent() instanceof View ? (View) scrambleView.getParent() : frame;
+            int parentWidth = parent != null && parent.getWidth() > 0 ? parent.getWidth() : dm.widthPixels;
+            int parentHeight = parent != null && parent.getHeight() > 0 ? parent.getHeight() : dm.heightPixels;
+            int rightMargin = Math.max(APP.getPixel(64), parentWidth / 14);
+            int sideWidth = Math.min(Math.max(APP.getPixel(260), parentWidth / 4), APP.getPixel(420));
+            int availableCubeWidth = Math.max(APP.getPixel(220), parentWidth - sideWidth - rightMargin - APP.getPixel(96));
+            int cubeHeight = Math.min((int) (parentHeight * 0.56f), (int) (availableCubeWidth * 0.86f));
+            cubeHeight = Math.max(APP.getPixel(260), cubeHeight);
+            int cubeWidth = (int) (cubeHeight * 0.88f);
+            RelativeLayout.LayoutParams previewParams = new RelativeLayout.LayoutParams(cubeWidth, cubeHeight);
+            previewParams.addRule(RelativeLayout.CENTER_IN_PARENT);
+            if (smartCube3DView != null) {
+                smartCube3DView.setLayoutParams(previewParams);
+            }
+            scrambleView.setLayoutParams(new RelativeLayout.LayoutParams(previewParams));
+            tvScramble.setTranslationY(-APP.getPixel(SMART_CUBE_IMMERSIVE_SCRAMBLE_OFFSET_DP));
+
+            RelativeLayout.LayoutParams timerParams = new RelativeLayout.LayoutParams(sideWidth, RelativeLayout.LayoutParams.WRAP_CONTENT);
+            timerParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+            timerParams.addRule(RelativeLayout.CENTER_VERTICAL);
+            timerParams.setMargins(0, 0, rightMargin, 0);
+            tvTimer.setLayoutParams(timerParams);
+            tvTimer.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+            setTextAlignmentCompat(tvTimer, View.TEXT_ALIGNMENT_VIEW_END);
+
+            RelativeLayout.LayoutParams phaseParams = new RelativeLayout.LayoutParams(sideWidth, RelativeLayout.LayoutParams.WRAP_CONTENT);
+            phaseParams.addRule(RelativeLayout.BELOW, R.id.tv_timer);
+            phaseParams.addRule(RelativeLayout.ALIGN_RIGHT, R.id.tv_timer);
+            phaseParams.setMargins(0, APP.getPixel(12), 0, 0);
+            tvMulPhase.setLayoutParams(phaseParams);
+            tvMulPhase.setGravity(Gravity.RIGHT);
+            setTextAlignmentCompat(tvMulPhase, View.TEXT_ALIGNMENT_VIEW_END);
+            applySmartCubeImmersivePhaseTextSize();
+            smartCubeImmersiveLayoutActive = true;
+            return;
+        }
+        if (!smartCubeImmersiveLayoutActive) {
+            return;
+        }
+        tvScramble.setTranslationY(0f);
+        RelativeLayout.LayoutParams timerParams = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+        tvTimer.setLayoutParams(timerParams);
+        tvTimer.setGravity(Gravity.CENTER);
+        setTextAlignmentCompat(tvTimer, View.TEXT_ALIGNMENT_CENTER);
+
+        RelativeLayout.LayoutParams phaseParams = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+        phaseParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        phaseParams.addRule(RelativeLayout.CENTER_VERTICAL);
+        phaseParams.setMargins(0, 0, APP.getPixel(5), 0);
+        tvMulPhase.setLayoutParams(phaseParams);
+        tvMulPhase.setGravity(Gravity.RIGHT);
+        setTextAlignmentCompat(tvMulPhase, View.TEXT_ALIGNMENT_VIEW_END);
+        tvMulPhase.setTextSize(MULTI_PHASE_DEFAULT_TEXT_SIZE_SP);
+        smartCubeImmersiveLayoutActive = false;
+    }
+
+    private void applySmartCubeImmersivePhaseTextSize() {
+        int phaseTextSize = Math.round(timerSize * SMART_CUBE_IMMERSIVE_PHASE_TIMER_RATIO);
+        phaseTextSize = Math.max(SMART_CUBE_IMMERSIVE_PHASE_MIN_SP,
+                Math.min(SMART_CUBE_IMMERSIVE_PHASE_MAX_SP, phaseTextSize));
+        tvMulPhase.setTextSize(phaseTextSize);
+    }
+
+    private void applyStatsTextSize() {
+        int statsTextSize = Math.round(timerSize * STATS_TIMER_TEXT_RATIO);
+        statsTextSize = Math.max(STATS_MIN_TEXT_SIZE_SP, Math.min(STATS_MAX_TEXT_SIZE_SP, statsTextSize));
+        tvStat.setTextSize(statsTextSize);
+    }
+
+    private void setTextAlignmentCompat(TextView view, int textAlignment) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            view.setTextAlignment(textAlignment);
+        }
+    }
+
+    private void showTimerPageCubeState(String cubeState) {
+        if (!isTimerTabActive()) {
+            hideTimerPageCubeState();
+            return;
+        }
+        final String displayCubeState = getDisplayCubeState(cubeState);
+        setSmartCubeImageSize();
+        scrambleView.setVisibility(View.GONE);
+        if (smartCube3DView != null) {
+            smartCube3DView.bringToFront();
+            smartCube3DView.setVisibility(View.VISIBLE);
+            smartCube3DView.showCubeState(displayCubeState);
+            applyLatestSmartCubeGyro(smartCube3DView);
+        } else {
+            scrambleView.setVisibility(View.VISIBLE);
+            scrambleView.showCubeState(displayCubeState);
+        }
+    }
+
+    private void updateSmartCubeCompletionChecker(SmartCube cube) {
+        if (cube == null) {
+            return;
+        }
+        if (isSmartCubeTrainingScramble()) {
+            cube.setCompletionChecker(new SmartCube.CompletionChecker() {
+                @Override
+                public boolean isComplete(SmartCube cube) {
+                    return SmartCubeTraining.isComplete(scrambleIdx, cube.getCubeState(), smartCubeTrainingOrientation);
+                }
+            });
+        } else {
+            cube.setCompletionChecker(null);
+        }
+    }
+
+    private void animateTimerPageCubeState(String fromState, String toState, int move) {
+        if (!isTimerTabActive()) {
+            hideTimerPageCubeState();
+            return;
+        }
+        final String displayFromState = getDisplayCubeState(fromState);
+        final String displayToState = getDisplayCubeState(toState);
+        final int displayMove = getDisplayCubeMove(move);
+        setSmartCubeImageSize();
+        scrambleView.setVisibility(View.GONE);
+        if (smartCube3DView != null) {
+            smartCube3DView.bringToFront();
+            smartCube3DView.setVisibility(View.VISIBLE);
+            applyLatestSmartCubeGyro(smartCube3DView);
+            smartCube3DView.animateMove(displayFromState, displayToState, displayMove);
+        } else {
+            scrambleView.setVisibility(View.VISIBLE);
+            scrambleView.animateMove(displayFromState, displayToState, displayMove);
+        }
+    }
+
+    private void hideTimerPageCubeState() {
+        applySmartCubeImmersiveLayout(false);
+        if (smartCube3DView != null) {
+            smartCube3DView.setVisibility(View.GONE);
+        }
+    }
+
+    private void hideTimerPageCubeState(boolean preserveSmartCubeImmersiveLayout) {
+        if (!preserveSmartCubeImmersiveLayout) {
+            hideTimerPageCubeState();
+            return;
+        }
+        if (!shouldUseSmartCubeImmersiveLayout()) {
+            applySmartCubeImmersiveLayout(false);
+        }
+        if (smartCube3DView != null) {
+            smartCube3DView.setVisibility(View.GONE);
+        }
+    }
+
+    private void showTimerPageScrambleImage(Bitmap bitmap) {
+        hideTimerPageCubeState();
+        scrambleView.setVisibility(View.VISIBLE);
+        scrambleView.setImageBitmap(bitmap);
+    }
+
+    private boolean shouldShowScrambleImage() {
+        return showImage && currentScramble != null && currentScramble.getImageType() > 0;
+    }
+
+    private void hideScrambleImage() {
+        scrambleView.setVisibility(View.GONE);
+        scrambleView.setImageBitmap(null);
+    }
+
+    private void setTextsColor() {
+        int color = APP.getTextColor();
+        setTimerColor(color);
+        tvScramble.setTextColor(color);
+        tvStat.setTextColor(color);
+        btnScramble.setTextColor(color);
+        //toolbar.setTitleTextColor(colors[1]);
+    }
+
+    private void setIconColor() {
+        int color = APP.getTextColor();
+        rbTimer.setColor(color);
+        rbResult.setColor(color);
+        rbSetting.setColor(color);
+        toolbar.setItemColor(color);
+        btnLeft.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_IN);
+        btnRight.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_IN);
+        pbScramble.getIndeterminateDrawable().setColorFilter(color, PorterDuff.Mode.SRC_IN);
+    }
+
+    private void setScramble() {
+        if (scrambleIdx == -25)
+            scrambleIdx = 33;
+        int idx = scrambleIdx >> 5;
+        int idx2 = scrambleIdx & 0x1f;
+        if (idx == -1 && idx2 > 7) idx2--;
+        btnScramble.setText(StringUtils.getScrambleName(idx, idx2));
+        newScramble();
+    }
+
+    private void newScramble() {   //生成新打乱
+        final boolean resetLen = lastScrambleType != scrambleIdx;
+        int idx = scrambleIdx >> 5;
+        int idx2 = scrambleIdx & 0x1f;
+        currentScramble.setCategory(scrambleIdx);
+        if (!resetLen && scrambleList !=null && importScrambleLen < scrambleList.size()) {
+            if (!isImportScr) isImportScr = true;
+            final String scr = scrambleList.get(importScrambleLen++);
+            currentScramble.setScramble(scr);
+            if (importType == 0)
+                currentScramble.setImageType(StringUtils.getImageType(scr));
+            else currentScramble.setImageType(StringUtils.getImageType(scr, importType));
+            if (currentScramble.getImageType() == 3 && solve333 != 0) {
+                new Thread() {
+                    public void run() {
+                        handler.sendEmptyMessage(4);
+                        currentScramble.solve333(scr);
+                        showScramble();
+                        handler.sendEmptyMessage(26);
+                    }
+                }.start();
+            } else {
+                tvScramble.setText(scr);
+                showScrambleView();
+            }
+        } else if ((idx == -1 && (idx2 < 2 || (idx2 > 2 && idx2 < 8) || idx2 == 10 || idx2 == 15 || idx2 == 17)) ||
+                (idx == 0 && idx2 < 2) ||
+                (idx == 1 && idx2 != 25) ||
+                (idx == 2 && idx2 == 5) ||
+                idx == 8 ||
+                (idx == 11 && (idx2 > 1 && idx2 < 5 || idx2 == 6 || idx2 == 8)) ||
+                (idx == 16 && idx2 == 8) ||
+                (idx == 17 && (idx2 < 3 || idx2 == 6)) ||
+                idx == 20) {    //TODO
+            if (isImportScr) isImportScr = false;
+            if (resetLen) scrambleState = SCRAMBLE_NONE;
+            if (scrambleState == SCRAMBLE_NONE || scrambleState == SCRAMBLE_DONE) {
+                new Thread() {
+                    public void run() {
+                        if (scrambleState == SCRAMBLE_DONE) {
+                            currentScramble = nextScramble;
+                            //Log.w("dct", "scrdone "+nextScramble+"/"+extsol);
+                        } else {
+                            scrambleState = SCRAMBLING;
+                            if (currentScramble.is444Scramble()) {
+                                //Log.w("dct", "4阶初始化");
+                                Util.init(handler);
+                            }
+                            handler.sendEmptyMessage(2);
+                            currentScramble.generateScramble(scrambleIdx, resetLen);
+                            adaptSmartCubeTrainingScramble(currentScramble);
+                        }
+                        if (scrambleIdx == lastScrambleType) {
+                            showScramble();
+                            scrambleState = SCRAMBLING_NEXT;
+                            handler.sendEmptyMessage(4);
+                            getNextScramble(resetLen);
+                        }
+                    }
+                }.start();
+            } else if (scrambleState == SCRAMBLING_NEXT) {
+                if (!scrambleGenerating) {
+                    scrambleGenerating = true;
+                    btnScramble.setVisibility(View.INVISIBLE);
+                    pbScramble.setVisibility(View.VISIBLE);
+                    btnLeft.setEnabled(false);
+                    btnRight.setEnabled(false);
+                    tvScramble.setText(getString(R.string.scrambling));
+                }
+            }
+        } else {
+            scrambleState = SCRAMBLING;
+            currentScramble.generateScramble(scrambleIdx, resetLen);
+            adaptSmartCubeTrainingScramble(currentScramble);
+            showScramble();
+            scrambleState = SCRAMBLE_DONE;
+        }
+        lastScrambleType = scrambleIdx;
+    }
+
+    private void adaptSmartCubeTrainingScramble(Scrambler scrambler) {
+        if (scrambler == null || !SmartCubeTraining.isSmart333Training(scrambleIdx)) {
+            return;
+        }
+        SmartCube cube = getActiveSmartCube();
+        if (cube == null || TextUtils.isEmpty(cube.getCubeState()) || TextUtils.isEmpty(scrambler.getCubeState())) {
+            markSmartCubeTrainingScrambleRefreshPending();
+            return;
+        }
+        String targetState = getPhysicalTrainingTargetState(scrambler);
+        String scramble = Scrambler.buildScrambleBetweenStates(cube.getCubeState(), targetState);
+        if (TextUtils.isEmpty(scramble) || scramble.startsWith("Error")) {
+            return;
+        }
+        scrambler.setSingleScramble(scrambleIdx, scramble.trim(), targetState, 3);
+        smartCubeTrainingScrambleRefreshPending = false;
+    }
+
+    private String getPhysicalTrainingTargetState(Scrambler scrambler) {
+        if (scrambler == null || TextUtils.isEmpty(scrambler.getScramble())) {
+            return scrambler == null ? null : scrambler.getCubeState();
+        }
+        String state = SOLVED_FACELET;
+        String[] moves = scrambler.getScramble().replace('\n', ' ').trim().split("\\s+");
+        for (String move : moves) {
+            if (TextUtils.isEmpty(move)) {
+                continue;
+            }
+            int displayMove = parseScrambleMove(move);
+            if (displayMove < 0) {
+                return scrambler.getCubeState();
+            }
+            int physicalMove = Utils.unorientSmartCubeMove(displayMove, smartCubeTrainingOrientation);
+            state = Utils.applySmartCubeMove(state, physicalMove);
+        }
+        return state;
+    }
+
+    private void showScramble() {   //显示打乱
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                updateScrambleTextView();
+                showScrambleView();
+            }
+        });
+    }
+
+    private void showNextScramble() {
+        clearSmartCubeScrambleCache();
+        tvScramble.setText(currentScramble.getNextScramble(dm.heightPixels < dpi * 376));
+        showScrambleView();
+    }
+
+    private void showLastScramble() {
+        clearSmartCubeScrambleCache();
+        tvScramble.setText(currentScramble.getLastScramble(dm.heightPixels < dpi * 376));
+        showScrambleView();
+    }
+
+    private void showScrambleView() {   //显示打乱状态
+        final SmartCube cube = getActiveSmartCube();
+        if (!showImage && cube == null) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    hideScrambleImage();
+                    hideTimerPageCubeState();
+                }
+            });
+            return;
+        }
+        //Log.w("dct", currentScramble.getCategory()+", "+currentScramble.getImageType());
+        if (cube != null && !TextUtils.isEmpty(cube.getCubeState())) {
+            final String cubeState = cube.getCubeState();
+            GanRobotSessionState.setLatestSmartCubeState(cubeState);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    showTimerPageCubeState(cubeState);
+                }
+            });
+            return;
+        }
+        if (currentScramble.getImageType() > 0 && showImage) {
+            setImageSize();
+            bmScrambleView = Bitmap.createBitmap(dip300, dip300 * 3 / 4, Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(bmScrambleView);
+            c.drawColor(0);
+            Paint p = new Paint();
+            p.setAntiAlias(true);
+            p.setStrokeWidth(dpi);
+            currentScramble.drawScramble(dip300, p, c);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    showTimerPageScrambleImage(bmScrambleView);
+                }
+            });
+        } else runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                hideScrambleImage();
+                hideTimerPageCubeState();
+            }
+        });
+    }
+
+    private void getNextScramble(boolean resetLen) {  //生成下一个打乱
+        scrambleState = SCRAMBLING_NEXT;
+        nextScramble = new Scrambler(sp);
+        nextScramble.setContext(context);
+        if (!resetLen) nextScramble.setScrambleLen(currentScramble.getScrambleLen());
+        nextScramble.generateScramble(scrambleIdx, resetLen);
+        adaptSmartCubeTrainingScramble(nextScramble);
+        Log.w("dct", "next scramble: "+ nextScramble.getScramble());
+        scrambleState = SCRAMBLE_DONE;
+        if (scrambleGenerating) {
+            currentScramble = nextScramble;
+            showScramble();
+            scrambleGenerating = false;
+            getNextScramble(resetLen);
+        } else handler.sendEmptyMessage(26);
+    }
+
+    public void setScrambleLen(int len) {
+        currentScramble.setScrambleLen(len);
+        int idx = scrambleIdx >> 5;
+        int idx2 = scrambleIdx & 0x1f;
+        if ((idx==-1 && idx2==17)
+                || (idx==0 && (idx2==1 || idx2==2))
+                || (idx==1 && (idx2==0 || idx2==19))
+                || (idx==20 && idx2==4))
+            scrambleState = SCRAMBLE_NONE;
+        newScramble();
+    }
+
+    public boolean isBLDScramble() {
+        return currentScramble.isBlindfoldScramble();
+    }
+
+    private void changeSession() {
+        btnSession.setText(sessionManager.getSessionName(sessionIdx));
+        int mp = sessionManager.getMultiPhase(sessionIdx);
+        if (mp != multiPhase) {
+            multiPhase = mp;
+            stAdapter.setText(ST_MULTI_PHASE, itemStr[3][mp]);
+            tvMulPhase.setText("");
+            setPref("multp", mp);
+            setResultTitle();
+        }
+        int avg = sessionManager.getAverage(sessionIdx);
+        if (avg == 0) avg = 8011;
+        int ra = (avg1Type * 1000 + avg1len - 1) * 2000 + (avg2Type * 1000 + avg2len - 1);
+        if (avg != ra) {
+            avg2len = (avg % 1000 + 1);
+            avg2Type = (avg % 2000) / 1000;
+            avg1len = (avg / 2000) % 1000 + 1;
+            avg1Type = avg / 2000 / 1000;
+            //Log.w("dct", avg1Type+"/"+avg1len+", "+avg2Type+"/"+avg2len);
+            stAdapter.setText(ST_AVG1_TYPE, itemStr[14][avg1Type]);
+            stAdapter.setText(ST_AVG1_LEN, String.valueOf(avg1len));
+            stAdapter.setText(ST_AVG2_TYPE, itemStr[4][avg2Type]);
+            stAdapter.setText(ST_AVG2_LEN, String.valueOf(avg2len));
+            setPref("l1tp", avg1Type);
+            setPref("l2tp", avg2Type);
+            setPref("l1len", avg1len);
+            setPref("l2len", avg2len);
+            if (multiPhase == 0) {
+                setResultTitle();
+            }
+        }
+        getResult();
+        result.calcAvg();
+        if (mp > 0) {
+            result.calcMpMean();
+        }
+        resetSortToGlobalOrder();
+        setResultTitle();
+        resAdapter.reload();
+        btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+        scrollResultToLatest();
+        setPref("session", sessionIdx);
+        int puzzle = sessionManager.getPuzzle(sessionIdx);
+        if (puzzle != scrambleIdx && scrambleState == SCRAMBLE_DONE) {
+            if (puzzle == -25) puzzle = 33;
+            scrambleIdx = puzzle;
+            setScramble();
+        }
+        setStatsLabel();
+    }
+
+    private void touchDown() {
+        if (enterTime >= 2) {
+            return;
+        }
+        if (isSmartCubeMode() && isSmartCubeDeviceType(bleDeviceType) && timer.getTimerState() == DCTTimer.INSPECTING) {
+            return;
+        }
+        if (enterTime == 1) {
+            setReadyHoldUi(false);
+            setTimerColor(0xff00ff00);
+            return;
+        }
+        if (timer.getTimerState() == DCTTimer.RUNNING) {
+            clearReadyHoldUiState();
+            if (mpCount != 0) {
+                if (vibrateType == 1 || vibrateType == 3)
+                    vibrator.vibrate(VIBRATE_TIME[vibrateTime]);
+                setTimerColor(0xff00ff00);
+                int idx = multiPhase + 1 - mpCount;
+                Result.multemp[idx] = SystemClock.uptimeMillis();
+                int time = idx == 0 ? (int) Result.multemp[idx] : (int) (Result.multemp[idx] - Result.multemp[idx-1]);
+                //if (idx == 0) tvAssist.setText(Stats.timeToString(time));
+                //else tvAssist.setText(tvAssist.getText()+"\n"+Stats.timeToString(time));
+                if (idx == 0) tvMulPhase.setText(StringUtils.timeToString(time));
+                else tvMulPhase.setText(tvMulPhase.getText()+"\n"+ StringUtils.timeToString(time));
+            } else {
+                timer.timeEnd = SystemClock.uptimeMillis();
+                if (vibrateType > 1)
+                    vibrator.vibrate(VIBRATE_TIME[vibrateTime]);
+                timer.count();
+                if (multiPhase > 0) {
+                    Result.multemp[multiPhase+1] = timer.timeEnd;
+                    int time = (int) (Result.multemp[multiPhase+1] - Result.multemp[multiPhase]);
+                    tvMulPhase.setText(tvMulPhase.getText() + "\n" + StringUtils.timeToString(time));
+                    //tvAssist.setText(tvAssist.getText()+"\n"+ Stats.timeToString(time));
+                }
+                setVisibility(true);
+            }
+        } else if (timer.getTimerState() != DCTTimer.STOP) {
+//            if (enterTime == 1) {
+//                setTimerColor(0xff00ff00);
+//            }
+            if (freezeTime == 0 || (wca && !currentScramble.isBlindfoldScramble() && timer.getTimerState() == DCTTimer.READY)) {
+                showReadyTimerText();
+                setTimerColor(0xff00ff00);
+                canStart = true;
+            } else {
+                setReadyHoldUi(false);
+                if (timer.getTimerState()==0) {
+                    if (multiPhase > 0) tvMulPhase.setText("");
+                    setTimerColor(0xffff0000);
+                }
+                else setTimerColor(0xffffff00);
+                timer.startFreeze();
+            }
+        }
+    }
+
+    private void touchUp() {
+        //Log.w("dct", "timer state "+timer.state);
+        if (timer.getTimerState() == DCTTimer.READY) {    //准备开始
+            if (isSwipe) {
+                //Log.w("dct", "is swipe");
+                switch (gesture) {
+                    case 2: //生成新打乱
+                        newScramble();
+                        break;
+                    case 1: //删除上次成绩
+                        if (result.length() != 0)
+                            new AlertDialog.Builder(context).setTitle(getString(R.string.confirm_delete_last) + result.getTimeAt(result.length() - 1, false))
+                                .setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        delete(result.length() - 1);
+                                    }
+                                }).setNegativeButton(R.string.btn_cancel, null).show();
+                        break;
+                    case 3: //修改惩罚
+                        if (result.length() != 0) {
+                            int penalty = result.getPenalty(result.length() - 1);
+                            new AlertDialog.Builder(context).setTitle(getString(R.string.show_time) + result.getTimeAt(result.length() - 1, true))
+                                    .setSingleChoiceItems(R.array.opt_penalty, penalty, new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int i) {
+                                            boolean tag = false;
+                                            switch (i) {
+                                                case 0:
+                                                    tag = result.update(result.length() - 1, (byte) 0);
+                                                    break;
+                                                case 1:
+                                                    tag = result.update(result.length() - 1, (byte) 1);
+                                                    break;
+                                                case 2:
+                                                    tag = result.update(result.length() - 1, (byte) 2);
+                                                    break;
+                                            }
+                                            if (tag) {
+                                                dialog.dismiss();
+                                                result.calcAvg();
+                                                if (multiPhase > 0) result.calcMpMean();
+                                                if (sortType != 0) result.sortResult();
+                                                btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+                                                resAdapter.notifyDataSetChanged();
+                                                setTimerText(result.getTimeAt(result.length() - 1, false));
+                                                setStatsLabel();
+                                            }
+                                        }
+                                    }).setNegativeButton(getString(R.string.btn_cancel), null).show();
+                        }
+                        break;
+                    case 4: //清空成绩
+                        if (result.length() != 0)
+                            confirmDeleteAll();
+                        break;
+                    case 5: //手动输入时间
+                        inputTime();
+                        break;
+                    case 6: //查看打乱详情
+                        ScrambleDetailDialog scrambleDialog = ScrambleDetailDialog.newInstance(currentScramble.getScramble(), currentScramble.getScrambleLen(), currentScramble.is333Scramble() ? 3 : 0);
+                        scrambleDialog.show(getSupportFragmentManager(), "ScrambleDetail");
+                        break;
+                    case 7: //切换分组
+                        String[] list = sessionManager.getSessionNames();
+                        new AlertDialog.Builder(context).setTitle(R.string.select_session).setItems(list, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                sessionIdx = i;
+                                changeSession();
+                            }
+                        }).setNegativeButton(R.string.btn_cancel, null).show();
+                        break;
+                }
+                isSwipe = false;
+            } else if (isSmartCubeMode()) {
+                if (isSmartCubeDeviceType(bleDeviceType)) {
+                    if (bluetoothTools.getCube() != null) {
+                        CubeStateDialog dialog = CubeStateDialog.newInstance(bluetoothTools.getCube());
+                        dialog.show(getSupportFragmentManager(), "CubeState");
+                    }
+                }
+            } else if (enterTime == 1) { //手动输入成绩
+                setReadyHoldUi(false);
+                tvTimer.setTextColor(APP.getTextColor());
+                inputTime();
+            } else if (enterTime == 0) {
+                if (freezeTime ==0 || canStart) {    //可以开始计时
+                    //Log.w("dct", "freeze=0 & canstart");
+                    clearReadyHoldUiState();
+                    timer.timeStart = SystemClock.uptimeMillis();
+                    if (vibrateType == 1 || vibrateType == 3)
+                        vibrator.vibrate(VIBRATE_TIME[vibrateTime]);
+                    timer.count();
+                    if (multiPhase > 0) {
+                        tvMulPhase.setText("");
+                        mpCount = multiPhase;
+                        Result.multemp[0] = timer.timeStart;
+                    }
+                    else mpCount = 0;
+                    acquireWakeLock();
+                    setVisibility(false);
+                } else {
+                    //Log.w("dct", "other");
+                    setReadyHoldUi(false);
+                    timer.stopFreeze();
+                    setTimerColor(APP.getTextColor());
+                }
+            }
+        } else if (timer.getTimerState() == DCTTimer.RUNNING) {
+            if (mpCount !=0) {
+                mpCount--;
+                setTimerColor(APP.getTextColor());
+            }
+        } else if (timer.getTimerState() == DCTTimer.INSPECTING) {
+            if (isSmartCubeMode() && isSmartCubeDeviceType(bleDeviceType)) {
+                return;
+            }
+            if (freezeTime ==0 || canStart) {
+                //tvAssist.setText("");
+                timer.timeStart = SystemClock.uptimeMillis();
+                penaltyTime = timer.getPenaltyTime();
+                isDNF = timer.isDNF();
+                if (vibrateType ==1 || vibrateType ==3)
+                    vibrator.vibrate(VIBRATE_TIME[vibrateTime]);
+                timer.count();
+                if (multiPhase > 0) Result.multemp[0] = timer.timeStart;
+                acquireWakeLock();
+                setVisibility(false);
+            } else {
+                timer.stopFreeze();
+                setTimerColor(0xffff0000);
+            }
+        } else {
+            if (!wca || currentScramble.isBlindfoldScramble()) { penaltyTime = 0; isDNF = false;}
+            save((int) timer.time);
+            timer.setTimerState(DCTTimer.READY);
+            if (!screenOn) releaseWakeLock();
+        }
+    }
+
+    private void inputTime() {
+        inputTime(null);
+    }
+
+    private void inputTime(KeyEvent firstKeyEvent) {
+        if (inputTimeDialog != null) return;
+        final KeypadDialog dialog = new KeypadDialog(this);
+        inputTimeDialog = dialog;
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                inputTimeDialog = null;
+            }
+        });
+        KeypadView keypad = dialog.getKeypad();
+        keypad.setOnClickListener(new KeypadView.OnClickListener() {
+            @Override
+            public void onFinish(String time, int penalty) {
+                dialog.dismiss();
+                int value = StringUtils.parseManualInputTime(time);
+                if (value <= 0) {
+                    Toast.makeText(context, getString(R.string.invalid_input), Toast.LENGTH_SHORT).show();
+                } else {
+                    addTime(value, penalty);
+                }
+            }
+
+            @Override
+            public void onClose() {
+                dialog.dismiss();
+            }
+        });
+        if (firstKeyEvent != null) {
+            keypad.handleKeyEvent(firstKeyEvent);
+        }
+    }
+
+    public void sayAlert(int id) {
+        if (inspectionAlertPlayer != null) {
+            inspectionAlertPlayer.play(id);
+        }
+    }
+
+    public void save(final int time) {
+        if (!isDNF) {
+            if (promptToSave) {
+                new AlertDialog.Builder(context).setTitle(getString(R.string.show_time) + StringUtils.timeToString(time + penaltyTime))
+                        .setItems(R.array.opt_penalty, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                switch (i) {
+                                    case 0: addTime(time + penaltyTime, 0); break;
+                                    case 1: addTime(time + penaltyTime, 1); break;
+                                    case 2: addTime(time + penaltyTime, 2); break;
+                                }
+                            }
+                        }).setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        newScramble();
+                    }
+                }).show();
+            } else addTime(time + penaltyTime, 0);
+        } else if (promptToSave) {
+            new AlertDialog.Builder(context).setTitle(getString(R.string.show_time) + "DNF("+ StringUtils.timeToString(time) + ")").setMessage(R.string.confirm_save)
+                    .setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            addTime(time, 2);
+                        }
+                    }).setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    newScramble();
+                }
+            }).show();
+        } else addTime(time, 2);
+        isDNF = false;
+    }
+
+    private void saveSmartCubeTime(int time, SmartCube cube) {
+        addTime(time, 0, cube);
+        penaltyTime = 0;
+        isDNF = false;
+    }
+
+    public void addTime(int time, int penalty) {
+        addTime(time, penalty, bluetoothTools == null ? null : bluetoothTools.getCube());
+    }
+
+    private void addTime(int time, int penalty, SmartCube cube) {
+        result.insert(time, penalty, currentScramble.getScramble(), multiPhase > 0, cube);
+        setTimerText(result.getTimeAt(result.length() - 1, false));
+        btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+        result.calcAvg();
+        if (multiPhase > 0) result.calcMpMean();
+        if (sortType != 0) result.sortResult();
+        resAdapter.reload();
+        if (sortType == 0)
+            //rvResult.scrollToPosition(resAdapter.getCount() - 1);
+            lvResult.setSelection(resAdapter.getCount() - 1);
+        else if (sortType == SORT_LATEST_FIRST)
+            lvResult.setSelection(0);
+        if (result.isSessionBest()) {
+            Snackbar.make(frame, getString(R.string.new_session_best) + result.getBestTime(), Snackbar.LENGTH_SHORT).show();
+        } else if (result.isAvgBest(0)) {
+            Snackbar.make(frame, getString(R.string.new_average_best) + result.getBestAvg1(), Snackbar.LENGTH_SHORT).show();
+        } else if(result.isAvgBest(1)) {
+            Snackbar.make(frame, getString(R.string.new_average_best) + result.getBestAvg2(), Snackbar.LENGTH_SHORT).show();
+        }
+        sessionManager.setPuzzle(sessionIdx, scrambleIdx);
+        newScramble();
+        setStatsLabel();
+    }
+
+    private void getResult() {
+        result.init(multiPhase > 0, sessionManager.getSession(sessionIdx).getId());
+    }
+
+    public void showDetail(int pos) {
+        int p = sortType == 0 ? pos : result.getSortIdx(pos);
+        String time = result.getTimeAt(p, true);
+        int penalty = result.getPenalty(p);
+        String scramble = result.getString(p, 4);
+        String date = result.getString(5);
+        String comment = result.getString(6);
+        String solution = result.getString(13);
+        String solveMeta = result.getString(14);
+        int id = result.getId(p);
+        Log.w("dct", "id: "+id);
+        if (date == null) date = "";
+        if (multiPhase > 0) {   //TODO 显示各分段成绩
+
+        }
+        ResultDialog dialog = ResultDialog.newInstance(p, time, scramble, date, penalty, comment, solution, solveMeta, sessionManager.getPuzzle(sessionIdx));
+        dialog.show(getSupportFragmentManager(), "result");
+    }
+
+    public void updateResult(int num, int penalty) {
+        result.update(num, penalty);
+        result.calcAvg();
+        if (multiPhase > 0) result.calcMpMean();
+        if (sortType != 0) result.sortResult();
+        btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+        resAdapter.notifyDataSetChanged();
+        setStatsLabel();
+    }
+
+    public void updateResult(int num, String comment) {
+        result.update(num, comment);
+    }
+
+    public void updateResultMoves(int num, String moves) {
+        result.updateMoves(num, moves);
+    }
+
+    public void copyScramble(String scramble) {
+        android.content.ClipboardManager clip = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        clip.setPrimaryClip(ClipData.newPlainText("text", scramble));
+        Toast.makeText(context, R.string.copy_success, Toast.LENGTH_SHORT).show();
+    }
+
+    public void showAvgDetail(final int type, int pos) {
+        final int j;
+        if (sortType == 0) j = pos;
+        else j = result.getSortIdx(pos);
+        if (type == 1 && result.getAvg1(j) == -2) return;
+        if (type == 2 && result.getAvg2(j) == -2) return;
+        String t = "";
+        switch (type) {
+            case 1:
+                t = getString(avg1Type ==0 ? R.string.detail_avg : R.string.detail_mean, avg1len);//String.format(avg1Type ==0 ? getString(R.string.detail_avg) : getString(R.string.detail_mean), avg1len);
+                statDetail = avg1Type ==0 ? StringUtils.averageOf(context, result, avg1len, j, null, new ArrayList<Integer>()) : StringUtils.meanOf(context, result, avg1len, j, null);
+                break;
+            case 2:
+                t = getString(avg2Type ==0 ? R.string.detail_avg : R.string.detail_mean, avg2len);
+                statDetail = avg2Type ==0 ? StringUtils.averageOf(context, result, avg2len, j, null, new ArrayList<Integer>()) : StringUtils.meanOf(context, result, avg2len, j, null);
+                break;
+            case 3:
+                t = getString(R.string.detail_session_mean);
+                statDetail = StringUtils.sessionMean(context, result, null);
+                break;
+        }
+        new AlertDialog.Builder(context).setTitle(t).setMessage(statDetail)
+                .setPositiveButton(R.string.btn_copy, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialoginterface, int i) {
+                        //if (Build.VERSION.SDK_INT >= 11) {
+                            android.content.ClipboardManager clip = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                            clip.setPrimaryClip(ClipData.newPlainText("text", statDetail));
+//                        }
+//                        else {
+//                            android.text.ClipboardManager clip = (android.text.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+//                            clip.setText(statDetail);
+//                        }
+                        Toast.makeText(context, getString(R.string.copy_success), Toast.LENGTH_SHORT).show();
+                    }
+                }).setNeutralButton(R.string.btn_detail, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent intent = new Intent(context, DetailActivity.class);
+                        String[] stats = new String[5];
+                        ArrayList<Integer> trimIdx = new ArrayList<>();
+                        switch (type) {
+                            case 1: //滚动平均1
+                                statDetail = avg1Type ==0 ? StringUtils.averageOf(context, result, avg1len, j, stats, trimIdx) : StringUtils.meanOf(context, result, avg1len, j, stats);
+                                intent.putExtra("avg", avg1Type == 0 ? 1 : 2);
+                                intent.putExtra("len", avg1len);
+                                intent.putExtra("pos", j);
+                                intent.putExtra("detail", stats);
+                                intent.putIntegerArrayListExtra("trim", trimIdx);
+                                break;
+                            case 2: //滚动平均2
+                                statDetail = avg2Type ==0 ? StringUtils.averageOf(context, result, avg2len, j, stats, trimIdx) : StringUtils.meanOf(context, result, avg2len, j, stats);
+                                intent.putExtra("avg", avg2Type == 0 ? 1 : 2);
+                                intent.putExtra("len", avg2len);
+                                intent.putExtra("pos", j);
+                                intent.putExtra("detail", stats);
+                                intent.putIntegerArrayListExtra("trim", trimIdx);
+                                break;
+                            case 3: //分组平均
+                                statDetail = StringUtils.sessionMean(context, result, stats);
+                                intent.putExtra("avg", 3);
+                                intent.putExtra("len", result.length());
+                                intent.putExtra("detail", stats);
+                                intent.putIntegerArrayListExtra("trim", trimIdx);
+                                break;
+                        }
+                        startActivityForResult(intent, 3);
+                    }
+                }).setNegativeButton(R.string.btn_close, null).show();
+    }
+
+    public void delete(final int num, boolean prompt) {
+        if (prompt) {
+            new AlertDialog.Builder(context).setTitle(getString(R.string.confirm_delete_result) + result.getTimeAt(num, false)).setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    delete(num);
+                }
+            }).setNegativeButton(R.string.btn_cancel, null).show();
+        } else delete(num);
+    }
+
+    private void delete(int num) {
+        int res = result.delete(num);
+        if (res != 0) Toast.makeText(context, R.string.delete_fail, Toast.LENGTH_SHORT).show();
+        btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
+        result.calcAvg();
+        if (multiPhase > 0) result.calcMpMean();
+        if (sortType != 0) result.sortResult();
+        resAdapter.reload();
+        setStatsLabel();
+    }
+
+    private void confirmDeleteAll() {
+        new AlertDialog.Builder(context).setTitle(R.string.confirm_clear_session)
+                .setNegativeButton(R.string.btn_cancel, null)
+                .setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface arg0, int arg1) {
+                        new AlertDialog.Builder(context).setTitle(R.string.confirm_clear_session_again)
+                                .setNegativeButton(R.string.btn_cancel, null)
+                                .setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        deleteAll();
+                                    }
+                                }).show();
+                    }
+                }).show();
+    }
+
+    private void deleteAll() {
+        result.clear();
+        btnSessionMean.setText(getString(R.string.session_mean) + "0/0): N/A (N/A)");
+        sortType = resultOrderType;
+        setResultTitle();
+        resAdapter.setLength(0);
+        setStatsLabel();
+        if (sessionManager.getPuzzle(sessionIdx) != 32) {
+            sessionManager.setPuzzle(sessionIdx, 32);
+            if (sessionIdx < 15) {
+                delPref("sestype" + sessionIdx);
+            }
+        }
+    }
+
+    private void setResultTitle() {
+        llTitle.removeAllViews();
+        TextView tvNum = new TextView(context);
+        tvNum.setLayoutParams(new LinearLayout.LayoutParams(-2, -1));
+        tvNum.setMinWidth(Math.round(dpi * 44));
+        tvNum.setText("#");
+        tvNum.setTextSize(16);
+        tvNum.setTextColor(getResources().getColor(R.color.colorGray2));
+        tvNum.setGravity(Gravity.CENTER);
+        llTitle.addView(tvNum);
+        String[] title;
+        if (multiPhase > 0) {
+            title = new String[multiPhase + 2];
+            title[0] = getString(R.string.time);
+            for (int i=1; i<multiPhase+2; i++) title[i] = "P-" + i;
+        } else {
+            title = new String[] {getString(R.string.time),
+                    (avg1Type ==0 ? "AO" : "MO") + avg1len,
+                    (avg2Type ==0 ? "AO" : "MO") + avg2len};
+        }
+        for (int i = 0; i < title.length; i++) {
+            String text = title[i];
+            //View v = new View(context);
+            //v.setLayoutParams(new LinearLayout.LayoutParams(1, -1));
+            //v.setBackgroundColor(0xddb2b2b2);
+            //llTitle.addView(v);
+            TextView tv = new TextView(context);
+            tv.setLayoutParams(new LinearLayout.LayoutParams(0, -1, 1));
+            if (sortType == -(i + 1)) tv.setTextColor(APP.colors[4]);
+            else tv.setTextColor(getResources().getColor(R.color.colorText));
+            tv.setGravity(Gravity.CENTER);
+            tv.setText(text);
+            tv.setTextSize(16);
+            if (multiPhase == 0) {
+                final int column = i + 1;
+                tv.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        togglePbSort(column);
+                    }
+                });
+            }
+            llTitle.addView(tv);
+        }
+    }
+
+    private int getSortOptionIndex() {
+        if (sortType == SORT_LATEST_FIRST) return 1;
+        if (sortType > 0) return sortType + 1;
+        return 0;
+    }
+
+    private int getSortTypeFromOption(int option) {
+        if (option == 1) return SORT_LATEST_FIRST;
+        if (option > 1) return option - 1;
+        return 0;
+    }
+
+    private boolean isGlobalResultOrder(int type) {
+        return type == 0 || type == SORT_LATEST_FIRST;
+    }
+
+    private void resetSortToGlobalOrder() {
+        sortType = resultOrderType;
+        if (sortType != 0) result.sortResult();
+    }
+
+    private void scrollResultToLatest() {
+        if (resAdapter.getCount() == 0) return;
+        lvResult.setSelection(sortType == SORT_LATEST_FIRST ? 0 : resAdapter.getCount() - 1);
+    }
+
+    private void togglePbSort(int column) {
+        llSearch.setVisibility(View.GONE);
+        llSession.setVisibility(View.VISIBLE);
+        Utils.hideKeyboard(editSearch);
+        sortType = sortType == -column ? 0 : -column;
+        if (sortType != 0) result.sortResult();
+        setResultTitle();
+        resAdapter.setHighlight(-1);
+        resAdapter.reload();
+        lvResult.setSelection(0);
+    }
+
+    //屏幕常亮
+    private void acquireWakeLock() {
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
+    private void releaseWakeLock() {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
+    public void requestDatabaseImport() {
+        openDocumentPicker("*/*", new String[] {"application/octet-stream", "application/x-sqlite3", "application/vnd.sqlite3", "application/*", "*/*"}, REQUEST_IMPORT_DATABASE);
+    }
+
+    public void requestDatabaseExport() {
+        openCreateDocument("application/octet-stream", "database.db", REQUEST_EXPORT_DATABASE);
+    }
+
+    public void requestScrambleImport() {
+        openDocumentPicker("text/*", new String[] {"text/plain", "text/*"}, REQUEST_IMPORT_SCRAMBLE);
+    }
+
+    public void requestScrambleExport(final int n, final String fileName) {
+        pendingScrambleExportCount = n;
+        openCreateDocument("text/plain", ensureFileName(fileName, getString(R.string.default_filename), ".txt"), REQUEST_EXPORT_SCRAMBLE);
+    }
+
+    public void importScramble(String scramble) {
+        scrambleList = new ArrayList<>();
+        importScrambleLen = 0;
+        Utils.addScramble(scramble, scrambleList);
+        if (scrambleList.size() > 0) newScramble();
+    }
+
+    private void openDocumentPicker(String primaryType, String[] mimeTypes, int requestCode) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(primaryType);
+        if (mimeTypes != null && mimeTypes.length > 0) {
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        }
+        startActivityForResult(intent, requestCode);
+    }
+
+    private void openCreateDocument(String mimeType, String fileName, int requestCode) {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(mimeType);
+        intent.putExtra(Intent.EXTRA_TITLE, fileName);
+        startActivityForResult(intent, requestCode);
+    }
+
+    private String ensureFileName(String fileName, String defaultFileName, String extension) {
+        String result = TextUtils.isEmpty(fileName) ? defaultFileName : fileName.trim();
+        if (TextUtils.isEmpty(result)) result = defaultFileName;
+        if (!TextUtils.isEmpty(extension) && !result.endsWith(extension)) {
+            result = result + extension;
+        }
+        return result;
+    }
+
+    private void selectPic() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("image/*");
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        startActivityForResult(i, REQUEST_BACKGROUND_IMAGE);
+    }
+}

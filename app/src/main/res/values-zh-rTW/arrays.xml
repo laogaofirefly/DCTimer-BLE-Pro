@@ -1,0 +1,592 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="item_scr">
+        <item>WCA</item>
+        <item>2階</item>
+        <item>3階</item>
+        <item>4階</item>
+        <item>5階</item>
+        <item>6階</item>
+        <item>7階</item>
+        <item>Megaminx</item>
+        <item>金字塔</item>
+        <item>Square-1</item>
+        <item>魔錶</item>
+        <item>Skewb</item>
+        <item>LxMxN</item>
+        <item>Cmetrick</item>
+        <item>齒輪方塊</item>
+        <item>Siamese Cube</item>
+        <item>15 puzzle</item>
+        <item>其他</item>
+        <item>3階子集</item>
+        <item>綁帶方塊</item>
+        <item>Megaminx子集</item>
+        <item>連解</item>
+        <item>3階 CFOP</item>
+        <item>3階 Roux</item>
+    </array>
+
+    <array name="item_wca">
+        <item>三階速解</item>
+        <item>四階速解</item>
+        <item>五階速解</item>
+        <item>二階速解</item>
+        <item>三階盲解</item>
+        <item>三階單手</item>
+        <item>三階最少步</item>
+        <item>Megaminx</item>
+        <item>金字塔</item>
+        <item>Square-1</item>
+        <item>魔錶</item>
+        <item>斜轉方塊</item>
+        <item>六階速解</item>
+        <item>七階速解</item>
+        <item>四階盲解</item>
+        <item>五階盲解</item>
+        <item>三階多盲</item>
+        <item>FTO</item>
+    </array>
+
+    <array name="item_222">
+        <item>隨機狀態</item>
+        <item>3-gen</item>
+        <item>6-gen</item>
+        <item>CLL訓練</item>
+        <item>EG1訓練</item>
+        <item>EG2訓練</item>
+        <item>PBL訓練</item>
+        <item>EG訓練</item>
+        <item>TCLL+訓練</item>
+        <item>TCLL-訓練</item>
+        <item>No bar</item>
+    </array>
+
+    <array name="item_333">
+        <item>傳統</item>
+        <item>隨機狀態</item>
+        <item>F2L訓練</item>
+        <item>頂層訓練</item>
+        <item>PLL訓練</item>
+        <item>邊塊訓練</item>
+        <item>角塊訓練</item>
+        <item>LSLL</item>
+        <item>ZBLL</item>
+        <item>ELL</item>
+        <item>CLL</item>
+        <item>LSE</item>
+        <item>橋式四角</item>
+        <item>邊塊位置</item>
+        <item>邊塊色相</item>
+        <item>角塊位置</item>
+        <item>角塊色相</item>
+        <item>位置訓練</item>
+        <item>色相訓練</item>
+        <item>簡單十字</item>
+        <item>2GLL</item>
+        <item>ZBLS</item>
+        <item>ZZLL</item>
+        <item>三循環邊塊</item>
+        <item>三循環角塊</item>
+        <item>傻瓜</item>
+    </array>
+
+    <array name="item_444">
+        <item>傳統</item>
+        <item>SiGN</item>
+        <item>YJ</item>
+        <item>邊塊訓練</item>
+        <item>R,r,U,u</item>
+    </array>
+
+    <array name="item_555">
+        <item>prefix</item>
+        <item>SiGN</item>
+        <item>邊塊訓練</item>
+    </array>
+
+    <array name="item_666">
+        <item>prefix</item>
+        <item>SiGN</item>
+        <item>suffix</item>
+        <item>邊塊訓練</item>
+    </array>
+
+    <array name="item_mega">
+        <item>Pochmann</item>
+        <item>傳統</item>
+    </array>
+
+    <array name="item_pyr">
+        <item>隨機狀態</item>
+        <item>隨機轉動</item>
+        <item>L4E</item>
+    </array>
+
+    <array name="item_sq1">
+        <item>face turn metric</item>
+        <item>twist metric</item>
+        <item>隨機狀態</item>
+        <item>立方體形狀</item>
+        <item>PLL</item>
+    </array>
+
+    <array name="item_clk">
+        <item>WCA</item>
+        <item>Jaap順序</item>
+        <item>concise</item>
+        <item>高效順序</item>
+    </array>
+
+    <array name="item_15p">
+        <item>拼塊移動</item>
+        <item>空格移動</item>
+    </array>
+
+    <array name="item_mnl">
+        <item>1x3x3</item>
+        <item>Super 1x3x3</item>
+        <item>2x3x3</item>
+        <item>2x2x3</item>
+        <item>2x2x4</item>
+        <item>3x3x4</item>
+        <item>3x3x5</item>
+        <item>3x3x6</item>
+        <item>3x3x7</item>
+        <item>4x4x6</item>
+        <item>8x8x8</item>
+        <item>9x9x9</item>
+        <item>10x10x10</item>
+        <item>11x11x11</item>
+    </array>
+
+    <array name="item_cmt">
+        <item>普通</item>
+        <item>迷你</item>
+    </array>
+
+    <array name="item_smc">
+        <item>1x1x3塊</item>
+        <item>1x2x3塊</item>
+        <item>2x2x2塊</item>
+    </array>
+
+    <array name="item_other">
+        <item>插銷方塊</item>
+        <item>直昇機</item>
+        <item>Square-2</item>
+        <item>Super SQ1</item>
+        <item>UFO</item>
+        <item>FTO</item>
+        <item>Redi cube</item>
+        <item>Master pyraminx</item>
+        <item>8 puzzle</item>
+        <item>CTO</item>
+        <item>楓葉</item>
+    </array>
+
+    <array name="item_333_sub">
+        <item>2-gen R,U</item>
+        <item>2-gen L,U</item>
+        <item>橋式 M,U</item>
+        <item>3-gen F,R,U</item>
+        <item>3-gen R,U,L</item>
+        <item>3-gen R,r,U</item>
+        <item>僅半轉</item>
+        <item>LSLL(舊)</item>
+    </array>
+
+    <array name="item_bandage">
+        <item>Bicube</item>
+        <item>SQ1 /,(1,0)</item>
+    </array>
+
+    <array name="item_minx_sub">
+        <item>2-gen R,U</item>
+        <item>LSLL</item>
+    </array>
+
+    <array name="item_gear">
+        <item>隨機狀態</item>
+        <item>3-gen</item>
+    </array>
+
+    <array name="item_skewb">
+        <item>隨機狀態</item>
+        <item>R U L B</item>
+        <item>L2L</item>
+    </array>
+
+    <array name="item_relay">
+        <item>多個3階</item>
+        <item>2到4階</item>
+        <item>2到5階</item>
+        <item>2到6階</item>
+        <item>2到7階</item>
+        <item>Guildford challenge</item>
+        <item>Mini Guildford challenge</item>
+    </array>
+
+    <array name="item_333_cfop">
+        <item>OLL</item>
+        <item>PLL</item>
+        <item>頂層</item>
+        <item>F2L</item>
+        <item>ZBLL</item>
+        <item>ZZLL</item>
+        <item>2GLL</item>
+        <item>ELL</item>
+        <item>ZBLS</item>
+        <item>COLL</item>
+        <item>OLLCP</item>
+        <item>EOCP</item>
+        <item>CLL</item>
+    </array>
+
+    <array name="item_333_roux">
+        <item>CMLL</item>
+        <item>LSE</item>
+        <item>L10P</item>
+    </array>
+
+    <array name="opt_penalty">
+        <item>無懲罰</item>
+        <item>"+2"</item>
+        <item>DNF</item>
+    </array>
+
+    <array name="opt_solve_333">
+        <item>不顯示</item>
+        <item>顯示Cross計算</item>
+        <item>顯示Xcross計算</item>
+        <item>顯示EOline計算</item>
+        <item>顯示Roux S1計算</item>
+        <item>顯示Petrus S1計算</item>
+        <item>顯示EOFC計算</item>
+    </array>
+
+    <array name="opt_mega_scheme">
+        <item>預設</item>
+        <item>mf8</item>
+    </array>
+
+    <array name="opt_accuracy">
+        <item>0.01秒</item>
+        <item>0.001秒</item>
+    </array>
+
+    <array name="opt_enter_time">
+        <item>計時器</item>
+        <item>手動輸入</item>
+        <item>Stackmat</item>
+        <item>智能方塊</item>
+        <item>藍牙計時器</item>
+    </array>
+
+    <array name="opt_solve_222">
+        <item>不顯示</item>
+        <item>顯示底面求解</item>
+        <item>顯示底層求解</item>
+    </array>
+
+    <array name="opt_timer_font">
+        <item>monospace</item>
+        <item>serif</item>
+        <item>sans-serif</item>
+        <item>CCT</item>
+        <item>數碼管1</item>
+        <item>數碼管2</item>
+    </array>
+
+    <array name="opt_multi_phase">
+        <item>關閉</item>
+        <item>"2"</item>
+        <item>"3"</item>
+        <item>"4"</item>
+        <item>"5"</item>
+        <item>"6"</item>
+    </array>
+
+    <array name="item_import_type">
+        <item>自動識別</item>
+        <item>二階</item>
+        <item>三階</item>
+        <item>四階</item>
+        <item>五階</item>
+        <item>六階</item>
+        <item>七階</item>
+        <item>金字塔</item>
+        <item>斜轉方塊</item>
+    </array>
+
+    <array name="opt_vibrate">
+        <item>關閉</item>
+        <item>僅計時開始</item>
+        <item>僅計時結束</item>
+        <item>計時開始和結束</item>
+    </array>
+
+    <array name="opt_vibrate_time">
+        <item>非常短</item>
+        <item>較短</item>
+        <item>標準</item>
+        <item>較長</item>
+        <item>非常長</item>
+    </array>
+
+    <array name="opt_timer_update">
+        <item>實時</item>
+        <item>到秒</item>
+        <item>僅觀察</item>
+        <item>隱藏</item>
+    </array>
+
+    <array name="opt_screen_ori">
+        <item>預設</item>
+        <item>橫屏</item>
+        <item>反向橫屏</item>
+        <item>竪屏</item>
+        <item>物理感應</item>
+    </array>
+
+    <array name="opt_sq_solver">
+        <item>不顯示</item>
+        <item>face turn metric</item>
+        <item>twist metric</item>
+    </array>
+
+    <array name="opt_time_format">
+        <item>hh:mm:ss.xy(z)</item>
+        <item>mm:ss.xy(z)</item>
+        <item>ss.xy(z)</item>
+    </array>
+
+    <array name="opt_decimal">
+        <item>.</item>
+        <item>,</item>
+    </array>
+
+    <array name="opt_average">
+        <item>去尾平均</item>
+        <item>平均</item>
+    </array>
+
+    <array name="item_timer">
+        <item>使用WCA觀察</item>
+        <item>觀察時語音提示</item>
+        <item>時間格式</item>
+        <item>小數點格式</item>
+        <item>產生成績通過</item>
+        <item>計時器更新方式</item>
+        <item>計時器精確度</item>
+        <item>啟動延時</item>
+        <item>多階段計時</item>
+        <item>兩手模擬Stackmat計時</item>
+        <item>計時介面顯示統計簡要</item>
+        <item>感應停止計時</item>
+        <item>靈敏度</item>
+    </array>
+
+    <array name="item_smart">
+        <item>使用解法</item>
+        <item>解法朝向基準</item>
+        <item>訓練朝向</item>
+        <item>轉亂推進樣式</item>
+        <item>虛擬方塊大小</item>
+        <item>陀螺儀跟隨視角</item>
+        <item>佈局</item>
+    </array>
+
+    <array name="item_scramble">
+        <item>轉亂字型大小</item>
+        <item>使用等寬轉亂字型</item>
+        <item>顯示轉亂後的狀態</item>
+        <item>轉亂狀態大小</item>
+        <item>EG訓練轉亂</item>
+    </array>
+
+    <array name="opt_smart_cube_faces">
+        <item>白</item>
+        <item>紅</item>
+        <item>綠</item>
+        <item>黃</item>
+        <item>橙</item>
+        <item>藍</item>
+    </array>
+
+    <array name="opt_smart_scramble_progress">
+        <item>已推進變淺保留</item>
+        <item>已推進自動消失</item>
+    </array>
+
+    <array name="opt_smart_solve_method">
+        <item>CFOP</item>
+        <item>Roux</item>
+    </array>
+
+    <array name="opt_smart_layout">
+        <item>預設</item>
+        <item>方塊置中（適用於10吋及以上大螢幕裝置）</item>
+    </array>
+
+    <array name="opt_app_language">
+        <item>跟隨系統</item>
+        <item>English</item>
+        <item>简体中文</item>
+        <item>繁體中文</item>
+    </array>
+
+    <array name="item_stats">
+        <item>有新成績時顯示提示</item>
+        <item>轉動平均1</item>
+        <item>轉動平均次數</item>
+        <item>轉動平均2</item>
+        <item>轉動平均次數</item>
+        <item>更換轉亂時自動匹配分組</item>
+    </array>
+
+    <array name="item_tools">
+        <item>三階相關求解</item>
+        <item>SQ1復形求解</item>
+        <item>二階相關求解</item>
+        <item>Pyraminx V求解</item>
+    </array>
+
+    <array name="item_scheme">
+        <item>NxNxN</item>
+        <item>金字塔</item>
+        <item>Square-1</item>
+        <item>斜轉方塊</item>
+        <item>Megaminx</item>
+    </array>
+
+    <array name="item_interface">
+        <item>語言</item>
+        <item>計時器字型</item>
+        <item>計時器字型大小</item>
+        <item>背景顔色</item>
+        <item>文字顔色</item>
+        <item>背景圖片</item>
+        <item>顯示背景圖片</item>
+        <item>不透明度</item>
+        <item>成績列表顔色：最佳單次</item>
+        <item>成績列表顔色：最差單次</item>
+        <item>成績列表顔色：最佳平均</item>
+    </array>
+
+    <array name="item_gesture">
+        <item>向左滑動</item>
+        <item>向右滑動</item>
+        <item>向上滑動</item>
+        <item>向下滑動</item>
+    </array>
+
+    <array name="item_hardware">
+        <item>保持熒幕常亮</item>
+        <item>觸感反饋</item>
+        <item>觸感持續時間</item>
+        <item>熒幕方向</item>
+    </array>
+
+    <array name="opt_solve_pyr">
+        <item>D</item>
+        <item>L</item>
+        <item>R</item>
+        <item>F</item>
+    </array>
+
+    <array name="opt_eg_scramble">
+        <item>CLL(EG0)</item>
+        <item>EG1</item>
+        <item>EG2</item>
+        <item>Pi</item>
+        <item>H</item>
+        <item>U</item>
+        <item>T</item>
+        <item>L</item>
+        <item>Sune</item>
+        <item>Anti-sune</item>
+    </array>
+
+    <array name="opt_gesture">
+        <item>無</item>
+        <item>刪除上一次成績</item>
+        <item>生成新轉亂</item>
+        <item>修改懲罰</item>
+        <item>清除成績</item>
+        <item>手動輸入成績</item>
+        <item>查看轉亂詳情</item>
+        <item>切換分組</item>
+    </array>
+
+    <array name="opt_sort_order">
+        <item>默認（最新在下）</item>
+        <item>最新在上</item>
+        <item>成績</item>
+        <item>成績（降序）</item>
+        <item>滚动平均1</item>
+        <item>滚动平均1（降序）</item>
+        <item>滚动平均2</item>
+        <item>滚动平均2（降序）</item>
+    </array>
+
+    <array name="opt_sort_order2">
+        <item>默認（最新在下）</item>
+        <item>最新在上</item>
+        <item>成績</item>
+        <item>成績（降序）</item>
+    </array>
+
+    <array name="item_date_range">
+        <item>日</item>
+        <item>周</item>
+        <item>月</item>
+        <item>年</item>
+    </array>
+
+    <array name="item_week">
+        <item>日</item>
+        <item>一</item>
+        <item>二</item>
+        <item>三</item>
+        <item>四</item>
+        <item>五</item>
+        <item>六</item>
+    </array>
+
+    <array name="item_month">
+        <item>"1"</item>
+        <item>"2"</item>
+        <item>"3"</item>
+        <item>"4"</item>
+        <item>"5"</item>
+        <item>"6"</item>
+        <item>"7"</item>
+        <item>"8"</item>
+        <item>"9"</item>
+        <item>"10"</item>
+        <item>"11"</item>
+        <item>"12"</item>
+    </array>
+
+    <array name="item_suff">
+        <item>順時針轉90度</item>
+        <item>轉180度</item>
+        <item>逆時針轉90度</item>
+    </array>
+
+    <array name="sampling_rate">
+        <item>"8000"</item>
+        <item>"11025"</item>
+        <item>"16000"</item>
+        <item>"22050"</item>
+        <item>"24000"</item>
+        <item>"32000"</item>
+        <item>"44100"</item>
+    </array>
+
+    <array name="data_format">
+        <item>8 bit</item>
+        <item>16 bit</item>
+    </array>
+</resources>

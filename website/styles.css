@@ -1,0 +1,949 @@
+:root {
+    --blue: #0066cc;
+    --ink: #1d1d1f;
+    --muted: #f2f2f2;
+    --canvas: #ffffff;
+    --parchment: #33304b;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--canvas);
+    font-family:
+        "JinKai", "TsangerJinKai02", "TsangerJinKai", "苍耳今楷",
+        "CangEr JinKai", "霞鹜文楷", "LXGW WenKai", serif;
+    font-size: 21px;
+    line-height: 1.55;
+    letter-spacing: 0;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.hero {
+    position: relative;
+    min-height: 86vh;
+    overflow: hidden;
+    color: white;
+    background:
+        radial-gradient(
+            circle at 76% 18%,
+            rgba(41, 151, 255, 0.18) 0 120px,
+            transparent 122px
+        ),
+        linear-gradient(180deg, #f8fbff 0%, #eaf4ff 100%);
+}
+
+.github-link {
+    position: absolute;
+    top: 42px;
+    right: clamp(24px, 5vw, 88px);
+    z-index: 2;
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    color: var(--ink);
+    transition: transform 180ms ease;
+}
+
+.changelog-link {
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    color: var(--blue);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.56em;
+    font-weight: 600;
+    line-height: 1.2;
+    transition:
+        color 180ms ease,
+        opacity 180ms ease;
+}
+
+.changelog-link:hover {
+    color: #0071e3;
+    opacity: 0.82;
+}
+
+.changelog-link:active {
+    opacity: 0.64;
+}
+
+.changelog-link:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+.github-link:hover {
+    transform: scale(1.04);
+}
+
+.github-link svg {
+    width: 30px;
+    height: 30px;
+    fill: currentColor;
+}
+
+.hero-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(360px, 0.78fr) minmax(560px, 1.22fr);
+    align-items: center;
+    gap: clamp(42px, 5vw, 86px);
+    width: min(100%, 1840px);
+    min-height: calc(86vh - 48px);
+    margin: 0 auto;
+    padding: 76px clamp(32px, 5vw, 72px) 112px;
+}
+
+.hero-copy {
+    max-width: 720px;
+    color: var(--ink);
+}
+
+.logo-mark {
+    width: 166px;
+    height: 166px;
+    margin-bottom: 22px;
+    display: grid;
+    place-items: center;
+}
+
+.logo-mark img {
+    width: 138px;
+    height: 138px;
+    object-fit: contain;
+}
+
+h1,
+h2,
+h3,
+p {
+    margin-top: 0;
+}
+
+h1 {
+    margin-bottom: 22px;
+    font-family:
+        Georgia, "Times New Roman", "Noto Serif", "Source Han Serif SC",
+        "Songti SC", SimSun, serif;
+    font-size: clamp(56px, 4.8vw, 88px);
+    font-weight: 350;
+    line-height: 0.96;
+    white-space: nowrap;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.tag-list span {
+    min-width: 92px;
+    padding: 4px 18px 6px;
+    border: 1px solid rgba(0, 102, 204, 0.45);
+    border-radius: 10px;
+    color: var(--blue);
+    background: rgba(255, 255, 255, 0.45);
+    text-align: center;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.tagline {
+    width: max-content;
+    max-width: 100%;
+    margin-bottom: 48px;
+    color: var(--ink);
+    font-size: clamp(22px, 1.9vw, 30px);
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.button-row {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+}
+
+.download-button {
+    gap: 10px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.download-button svg {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    fill: currentColor;
+}
+
+.apk-version {
+    margin-left: 6px;
+    font-size: 0.78em;
+    font-weight: 400;
+    opacity: 0.82;
+    display: inline;
+}
+
+.primary-button,
+.store-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    border-radius: 12px;
+    white-space: nowrap;
+    transition:
+        transform 180ms ease,
+        background-color 180ms ease;
+}
+
+.primary-button {
+    min-width: 174px;
+    padding: 0 30px;
+    color: white;
+    background: var(--blue);
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.store-button {
+    min-width: 174px;
+    padding: 0 28px;
+    color: var(--blue);
+    background: white;
+    border: 1px solid rgba(0, 102, 204, 0.2);
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.primary-button:hover,
+.store-button:hover {
+    transform: scale(1.04);
+}
+
+.primary-button:hover {
+    background: #0071e3;
+}
+
+.hero-media {
+    align-self: center;
+}
+
+.image-zoom-trigger {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: zoom-in;
+    font: inherit;
+}
+
+.image-zoom-trigger:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 8px;
+    border-radius: 10px;
+}
+
+.hero-screenshot {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 34px rgba(0, 102, 204, 0.14));
+}
+
+.gsap-ready .github-link,
+.gsap-ready .logo-mark,
+.gsap-ready h1,
+.gsap-ready .tag-list span,
+.gsap-ready .tagline,
+.gsap-ready .download-button,
+.gsap-ready .hero-media,
+.gsap-ready .wave,
+.gsap-ready .feature-row,
+.gsap-ready .migration-notes-inner,
+.gsap-ready .site-footer {
+    will-change: transform, opacity;
+}
+
+.wave {
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 178px;
+    pointer-events: none;
+}
+
+.wave svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.wave-back,
+.wave-mid,
+.wave-front {
+    fill: var(--canvas);
+}
+
+.wave-back {
+    opacity: 0.14;
+}
+
+.wave-mid {
+    opacity: 0.22;
+}
+
+.wave-front {
+    opacity: 1;
+}
+
+.features {
+    padding: 26px clamp(24px, 8vw, 150px) 92px;
+    background: var(--canvas);
+}
+
+.section-title {
+    display: grid;
+    justify-items: center;
+    margin-bottom: 78px;
+}
+
+.feature-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(420px, 1fr);
+    align-items: center;
+    gap: clamp(32px, 5vw, 80px);
+    width: min(100%, 1640px);
+    margin: 0 auto 112px;
+}
+
+.feature-row.reverse {
+    grid-template-columns: minmax(650px, 1.26fr) minmax(320px, 0.74fr);
+    gap: clamp(20px, 3vw, 48px);
+    width: min(100%, 1880px);
+}
+
+.feature-row.reverse .feature-copy {
+    order: 2;
+}
+
+.feature-row.reverse .feature-art {
+    order: 1;
+}
+
+.feature-copy h3 {
+    margin-bottom: 32px;
+    font-size: clamp(40px, 3.8vw, 56px);
+    font-weight: 400;
+    line-height: 1;
+}
+
+.feature-copy ol {
+    margin: 0;
+    padding-left: 36px;
+    color: var(--ink);
+    font-size: clamp(24px, 2vw, 32px);
+    line-height: 1.45;
+}
+
+.feature-art {
+    display: grid;
+    place-items: center;
+    min-height: 360px;
+}
+
+.feature-art img {
+    display: block;
+    width: min(100%, 760px);
+    height: auto;
+    object-fit: contain;
+}
+
+.feature-art-wide img {
+    width: min(100%, 1240px);
+}
+
+.feature-caption {
+    margin: 12px 0 0;
+    color: var(--ink);
+    font-size: 18px;
+    line-height: 1.35;
+    opacity: 0.62;
+    text-align: center;
+}
+
+/* 新增：双列信息展示板块 (Changelog + 迁移说明，无边框和背景，改用竖线分割) */
+.info-section {
+    padding: 0 clamp(24px, 8vw, 150px) 92px;
+    background: var(--canvas);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: min(100%, 1640px);
+    margin: 0 auto;
+    position: relative;
+}
+
+/* 仅在桌面端添加中间的竖线分割 */
+@media (min-width: 1025px) {
+    .info-grid::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 1px;
+        background: rgba(0, 102, 204, 0.18);
+        transform: translateX(-50%);
+    }
+}
+
+.info-card {
+    padding: 0 clamp(24px, 4vw, 56px);
+}
+
+/* 去除卡片悬停效果，改为自然纯文本排版 */
+.info-card h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    font-size: clamp(28px, 2.2vw, 36px);
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.2;
+}
+
+.version-badge {
+    display: inline-block;
+    padding: 3px 10px 4px;
+    border-radius: 8px;
+    font-size: 0.52em;
+    font-weight: 700;
+    color: white;
+    background: var(--blue);
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.info-card ul,
+.info-card ol {
+    margin: 0;
+    padding-left: 28px;
+    font-size: clamp(19px, 1.4vw, 22px);
+    line-height: 1.6;
+    color: #333333;
+}
+
+.info-card li {
+    margin-bottom: 12px;
+}
+
+.info-card li:last-child {
+    margin-bottom: 0;
+}
+
+.info-card code {
+    padding: 2px 7px 4px;
+    border-radius: 6px;
+    color: #1f4d2b;
+    background: rgba(49, 87, 58, 0.1);
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 0.88em;
+}
+
+.footer-link {
+    color: var(--blue);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1.5px solid transparent;
+    transition:
+        border-color 180ms ease,
+        opacity 180ms ease;
+}
+
+.footer-link:hover {
+    opacity: 0.82;
+    border-color: var(--blue);
+}
+
+.footer-contact {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 auto;
+}
+
+.qq-icon {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    opacity: 0.85;
+}
+
+.image-dialog {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.image-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.image-dialog img {
+    display: block;
+    max-width: 100%;
+    max-height: 88vh;
+    margin: 0 auto;
+    object-fit: contain;
+    touch-action: none;
+    transform-origin: center center;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.image-dialog-close {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: white;
+    background: rgba(0, 0, 0, 0.42);
+    cursor: pointer;
+    font:
+        32px/1 Arial,
+        sans-serif;
+}
+
+.changelog-dialog {
+    width: min(720px, calc(100vw - 32px));
+    max-height: min(760px, calc(100vh - 32px));
+    padding: 0;
+    border: 0;
+    border-radius: 12px;
+    color: var(--ink);
+    background: white;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.2);
+    overscroll-behavior: contain;
+}
+
+.changelog-dialog::backdrop {
+    background: rgba(12, 18, 24, 0.42);
+}
+
+.changelog-dialog-panel {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    max-height: min(760px, calc(100vh - 32px));
+}
+
+.changelog-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 28px 18px;
+    border-bottom: 1px solid rgba(0, 102, 204, 0.14);
+}
+
+.changelog-dialog-header h2 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.changelog-dialog-close {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: rgba(29, 29, 31, 0.72);
+    background: rgba(0, 102, 204, 0.08);
+    cursor: pointer;
+    font:
+        28px/1 Arial,
+        sans-serif;
+    transition:
+        background-color 180ms ease,
+        color 180ms ease;
+}
+
+.changelog-dialog-close:hover {
+    color: var(--ink);
+    background: rgba(0, 102, 204, 0.14);
+}
+
+.changelog-dialog-close:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+}
+
+.changelog-dialog-body {
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 28px;
+}
+
+.changelog-version {
+    padding: 24px 0;
+    border-bottom: 1px solid rgba(29, 29, 31, 0.14);
+}
+
+.changelog-version:last-child {
+    border-bottom: 0;
+}
+
+.changelog-version-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+}
+
+.changelog-version h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.changelog-version time {
+    flex: 0 0 auto;
+    color: rgba(29, 29, 31, 0.58);
+    font-size: 17px;
+    line-height: 1.2;
+}
+
+.changelog-version ul {
+    margin: 0;
+    padding-left: 26px;
+    color: #333333;
+    font-size: 19px;
+    line-height: 1.55;
+}
+
+.changelog-version li {
+    margin-bottom: 8px;
+}
+
+.changelog-version li:last-child {
+    margin-bottom: 0;
+}
+
+.changelog-loading,
+.changelog-empty {
+    margin: 0;
+    padding: 30px 0;
+    color: rgba(29, 29, 31, 0.62);
+    font-size: 19px;
+}
+
+.site-footer {
+    display: grid;
+    gap: 6px;
+    padding: 42px 20px 48px;
+    color: rgba(29, 29, 31, 0.48);
+    background: transparent;
+    border-top: 1px solid rgba(0, 102, 204, 0.16);
+    text-align: center;
+    font-size: 16px;
+    line-height: 1.45;
+}
+
+.site-footer p {
+    margin: 0;
+}
+
+@media (max-width: 1024px) {
+    .hero-grid {
+        grid-template-columns: minmax(0, 1fr);
+        padding-top: 110px;
+    }
+
+    .hero-copy {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+    }
+
+    .hero-media {
+        width: min(100%, 860px);
+        min-width: 0;
+    }
+
+    .feature-row,
+    .feature-row.reverse {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 28px;
+    }
+
+    .feature-row.reverse .feature-copy,
+    .feature-row.reverse .feature-art {
+        order: initial;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+}
+
+@media (max-width: 640px) {
+    body {
+        font-size: 18px;
+    }
+
+    .github-link {
+        top: 22px;
+        right: 18px;
+        width: 32px;
+        height: 32px;
+    }
+
+    .changelog-link {
+        font-size: 0.62em;
+    }
+
+    .hero-grid {
+        min-height: 84vh;
+        gap: 28px;
+        padding: 76px 20px 82px;
+        text-align: center;
+    }
+
+    .logo-mark {
+        width: 104px;
+        height: 104px;
+        margin: 0 auto 12px;
+    }
+
+    .logo-mark img {
+        width: 92px;
+        height: 92px;
+    }
+
+    h1 {
+        width: 100%;
+        margin-bottom: 16px;
+        font-size: clamp(40px, 12.4vw, 52px);
+        text-align: center;
+    }
+
+    .tag-list {
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .tag-list span {
+        min-width: auto;
+        padding: 3px 12px 5px;
+        font-size: 16px;
+    }
+
+    .tagline {
+        width: auto;
+        margin-bottom: 26px;
+        font-size: clamp(18px, 5.2vw, 22px);
+        line-height: 1.24;
+        white-space: nowrap;
+    }
+
+    .button-row {
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .primary-button,
+    .store-button {
+        width: auto;
+        min-width: 148px;
+        min-height: 48px;
+        padding: 0 18px;
+        font-size: 18px;
+    }
+
+    .download-button {
+        gap: 8px;
+    }
+
+    .download-button svg {
+        width: 19px;
+        height: 19px;
+    }
+
+    .hero-media {
+        width: 100%;
+    }
+
+    .wave {
+        height: 104px;
+    }
+
+    .features {
+        padding: 18px 22px 72px;
+    }
+
+    .section-title {
+        margin-bottom: 54px;
+    }
+
+    .feature-row {
+        gap: 28px;
+        margin-bottom: 72px;
+    }
+
+    .feature-copy h3 {
+        margin-bottom: 20px;
+        font-size: 34px;
+    }
+
+    .feature-copy ol {
+        padding-left: 28px;
+        font-size: 22px;
+        line-height: 1.45;
+    }
+
+    .feature-art {
+        min-height: 260px;
+    }
+
+    .feature-art img {
+        width: min(100%, 390px);
+    }
+
+    .feature-art-wide img {
+        width: min(100%, 430px);
+    }
+
+    .info-section {
+        padding: 0 22px 54px;
+    }
+
+    .info-card {
+        padding: 0;
+    }
+
+    .info-card h2 {
+        margin-bottom: 18px;
+        font-size: 28px;
+    }
+
+    .info-card ul,
+    .info-card ol {
+        padding-left: 24px;
+        font-size: 19px;
+    }
+
+    .info-card code {
+        word-break: break-all;
+    }
+
+    .changelog-dialog {
+        width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+    }
+
+    .changelog-dialog-panel {
+        max-height: calc(100vh - 24px);
+    }
+
+    .changelog-dialog-header {
+        padding: 20px 20px 16px;
+    }
+
+    .changelog-dialog-header h2 {
+        font-size: 26px;
+    }
+
+    .changelog-dialog-body {
+        padding: 0 20px;
+    }
+
+    .changelog-version-heading {
+        align-items: flex-start;
+    }
+
+    .changelog-version h3 {
+        font-size: 22px;
+    }
+
+    .changelog-version time {
+        font-size: 16px;
+    }
+
+    .changelog-version ul {
+        padding-left: 22px;
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 380px) {
+    .github-link {
+        right: 14px;
+    }
+
+    .hero-grid {
+        padding-inline: 16px;
+    }
+
+    .tag-list span {
+        font-size: 17px;
+        padding-inline: 10px;
+    }
+
+    .primary-button,
+    .store-button {
+        min-width: 0;
+        width: 100%;
+        padding-inline: 14px;
+    }
+
+    .button-row {
+        align-items: stretch;
+        flex-direction: column;
+        width: 100%;
+    }
+}

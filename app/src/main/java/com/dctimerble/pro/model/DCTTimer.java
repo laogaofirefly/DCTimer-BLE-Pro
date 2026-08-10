@@ -1,0 +1,232 @@
+package com.dctimerble.pro.model;
+
+import java.util.Timer;
+import java.util.TimerTask;
+
+import com.dctimerble.pro.APP;
+import com.dctimerble.pro.R;
+import com.dctimerble.pro.activity.MainActivity;
+import com.dctimerble.pro.util.StringUtils;
+
+import android.annotation.SuppressLint;
+import android.os.*;
+
+public class DCTTimer {
+    private int inspectionState;	//1-观察中 2-+2 3-DNF
+    private int timerState = 0;	//0-就绪 1-计时中 2-观察中 3-停止
+    public static final int READY = 0;
+    public static final int RUNNING = 1;
+    public static final int INSPECTING = 2;
+    public static final int STOP = 3;
+
+    public long time, timeStart, timeEnd;
+    private Timer mTimer;
+    private TimerTask timerTask = null;
+    private FreezeThread freezeThread = null;
+    private MainActivity dct;
+    private TimeHandler handler;
+    private int inspectionTime = 0;
+
+    private boolean eightSec;
+    private boolean twelveSec;
+
+    public DCTTimer(MainActivity dct) {
+        this.dct = dct;
+        handler = new TimeHandler();
+        mTimer = new Timer();
+    }
+
+    public int getTimerState() {
+        return timerState;
+    }
+
+    public void setTimerState(int timerState) {
+        this.timerState = timerState;
+    }
+
+    public int getPenaltyTime() {
+        return inspectionState == 2 ? 2000 : 0;
+    }
+
+    public boolean isDNF() {
+        return inspectionState == 3;
+    }
+
+    public void startFreeze() {
+        freezeThread = new FreezeThread();
+        freezeThread.start();
+    }
+
+    public void stopFreeze() {
+        if (freezeThread != null)
+            freezeThread.canStart = false;
+    }
+
+    public void stopInspect() {
+        if (timerState == INSPECTING) {
+            cancelTimerTask();
+            dct.setTimerColor(APP.getTextColor());
+        }
+        timerState = READY;
+    }
+
+    public void startExternalRunning(long elapsedTime) {
+        cancelTimerTask();
+        inspectionState = 0;
+        time = Math.max(0L, elapsedTime);
+        timeStart = SystemClock.uptimeMillis() - time;
+        timerState = RUNNING;
+        dct.setTimerColor(APP.getTextColor());
+        timerTask = new ClockTask();
+        mTimer.schedule(timerTask, 0, 17);
+        handler.sendEmptyMessage(0);
+    }
+
+    public void finishExternalRunning(long finalTime) {
+        cancelTimerTask();
+        inspectionState = 0;
+        timerState = STOP;
+        time = Math.max(0L, finalTime);
+        timeEnd = timeStart + time;
+    }
+
+    public void cancelExternalRunning() {
+        cancelTimerTask();
+        inspectionState = 0;
+        timerState = READY;
+        time = 0;
+    }
+
+    public void count() {
+        if (timerState == READY || timerState == INSPECTING) {
+            time = 0;
+            if (timerState == READY && APP.wca && !dct.isBLDScramble()) {
+                timerState = INSPECTING;
+                inspectionState = 1;
+                inspectionTime = 0;
+                dct.setTimerColor(0xffff0000);
+                timerTask = new InspectTask();
+                eightSec = twelveSec = false;
+                mTimer.schedule(timerTask, 0, 200);
+                handler.sendEmptyMessage(0);
+            } else {
+                if (APP.wca && timerTask != null) {
+                    cancelTimerTask();
+                }
+                timerState = RUNNING;
+                dct.setTimerColor(APP.getTextColor());
+                timerTask = new ClockTask();
+                mTimer.schedule(timerTask, 0, 17);
+            }
+        } else if (timerState == RUNNING) {
+            timerState = STOP;
+            time = timeEnd - timeStart;
+            if (time < 100) time = 100;
+            cancelTimerTask();
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        Thread.sleep(23);
+                    } catch (Exception e) { }
+                    handler.sendEmptyMessage(2);
+                }
+            }).start();
+        }
+    }
+
+    private class ClockTask extends TimerTask {
+        @Override
+        public void run() {
+            time = SystemClock.uptimeMillis() - timeStart;
+            handler.sendEmptyMessage(0);
+        }
+    }
+
+    private class InspectTask extends TimerTask {
+        @Override
+        public void run() {
+            time = SystemClock.uptimeMillis() - timeStart;
+            if (APP.inspectionAlert && time >= 7700 && !eightSec) {
+                eightSec = true;
+                dct.sayAlert(R.string.eight_sec);
+            }
+            if (APP.inspectionAlert && time >= 11800 && !twelveSec) {
+                twelveSec = true;
+                dct.sayAlert(R.string.twelve_sec);
+            }
+            updateInspectionState();
+            handler.sendEmptyMessage(0);
+        }
+    }
+
+    private class FreezeThread extends Thread {
+        private boolean canStart = true;
+        public void run() {
+            long start = SystemClock.uptimeMillis();
+            dct.canStart = false;
+            while (canStart) {
+                try {
+                    sleep(10);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                long time = SystemClock.uptimeMillis() - start;
+                if (time >= APP.freezeTime * 50) {
+                    dct.canStart = true;
+                    handler.sendEmptyMessage(1);
+                    break;
+                }
+            }
+        }
+    }
+
+    @SuppressLint("HandlerLeak")
+    class TimeHandler extends Handler {
+        public void handleMessage(Message msg) {
+            if (msg.what == 1) {
+                dct.showReadyTimerText();
+                dct.setTimerColor(0xff00ff00);
+            }
+            else if (msg.what == 2) {
+                if (APP.enterTime == 0)
+                    dct.setTimerText(StringUtils.timeToString((int) time));
+                else if (APP.enterTime >= 2)
+                    dct.updateTime();
+            } else if (timerState == 1) {
+                if (APP.timerUpdate == 0) dct.setTimerText(StringUtils.timeToString((int) time));
+                else if (APP.timerUpdate == 1) dct.setTimerText(StringUtils.timeToString((int) time, false));
+                else dct.setTimerText(dct.getString(R.string.solving));
+            } else if (inspectionState == 1) {
+                if (APP.timerUpdate < 3) {
+                    dct.setTimerText(String.valueOf(inspectionTime));
+//					if (inspectionTime == 8 || inspectionTime == 12)
+//						dct.tvTimer.setTextColor(0xffff8080);
+//					else dct.tvTimer.setTextColor(0xffff0000);
+                }
+                else dct.setTimerText(dct.getResources().getString(R.string.inspecting));
+            } else if (inspectionState == 2) {
+                if (APP.timerUpdate < 3) dct.setTimerText("+2");
+            } else if (inspectionState == 3) {
+                if (APP.timerUpdate < 3) dct.setTimerText("DNF");
+            }
+        }
+    }
+
+    private void cancelTimerTask() {
+        if (timerTask != null) {
+            timerTask.cancel();
+            timerTask = null;
+        }
+    }
+
+    private void updateInspectionState() {
+        if (time < 15000) {
+            inspectionTime = (int) (time / 1000);
+            inspectionState = 1;
+        } else if (time < 17000) {
+            inspectionState = 2;
+        } else {
+            inspectionState = 3;
+        }
+    }
+}
