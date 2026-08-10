@@ -1,7 +1,8 @@
 package com.dctimerble.pro.activity
 
 import android.annotation.SuppressLint
-import android.graphics.Color
+import android.graphics.Color as AndroidColor
+
 import android.os.Bundle
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
@@ -23,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.dctimerble.pro.APP
@@ -71,7 +73,7 @@ private fun WebScreen(title: String, url: String, onBack: () -> Unit) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { context -> WebView(context).apply {
-                    setBackgroundColor(Color.TRANSPARENT)
+                    setBackgroundColor(AndroidColor.TRANSPARENT)
                     settings.javaScriptEnabled = true
                     settings.builtInZoomControls = false
                     webViewClient = object : WebViewClient() {
