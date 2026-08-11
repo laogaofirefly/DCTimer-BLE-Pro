@@ -1,6 +1,5 @@
 package com.dctimerble.pro.timer
 
-import androidx.lifecycle.ViewModel
 import com.dctimerble.pro.activity.MainActivity
 import com.dctimerble.pro.model.BLEDevice
 import com.dctimerble.pro.model.SmartCube
@@ -61,7 +60,7 @@ class BluetoothCubeController(private val activity: MainActivity) : ViewModel() 
     fun connect(index: Int) = bluetooth.connectDevice(index)
     fun disconnect() = bluetooth.disconnect()
     fun isBluetoothEnabled() = bluetooth.isBluetoothEnabled()
-    fun devices(): List<BLEDevice> = bluetooth.devices
+    fun devices(): List<BLEDevice> = bluetooth.getDevices()
 
     private fun timer(phase: TimerPhase, time: Int) = update { copy(timerPhase = phase, timerMs = time) }
     private fun update(block: UiState.() -> UiState) { _uiState.value = block(_uiState.value) }

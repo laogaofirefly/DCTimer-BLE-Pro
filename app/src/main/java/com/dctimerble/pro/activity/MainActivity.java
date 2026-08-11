@@ -250,7 +250,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // Compose owns the complete main screen. Legacy XML initialization is intentionally skipped.
         app.readPref(sp);
         MainComposeUi.install(this);
-        return;
+        // The legacy initialization below remains available for non-Compose experiments;
+        // the Compose entry point is the only active main UI.
+        if (!isFinishing()) return;
         //edit = sp.edit();
         uiMode = getResources().getConfiguration().uiMode;
         dm = getResources().getDisplayMetrics();
