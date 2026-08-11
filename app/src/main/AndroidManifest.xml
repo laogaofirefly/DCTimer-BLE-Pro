@@ -51,9 +51,6 @@
             android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:label="@string/title_activity_detail" />
         <activity
-            android:name=".activity.WebActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize|uiMode" />
-        <activity
             android:name=".activity.GraphActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|uiMode" />
         <activity

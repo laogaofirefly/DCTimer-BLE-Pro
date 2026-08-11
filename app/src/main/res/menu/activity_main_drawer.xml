@@ -31,25 +31,6 @@
         </menu>
     </item>
 
-    <item android:title="@string/menu_website">
-        <menu>
-            <item
-                android:id="@+id/nav_algorithm"
-                android:title="Speed Cube Database" />
-
-            <item
-                android:id="@+id/nav_algcubing"
-                android:title="alg.cubing.net" />
-
-            <item
-                android:id="@+id/nav_wca"
-                android:title="World Cube Association" />
-
-            <item
-                android:id="@+id/nav_cubing"
-                android:title="Cubing China" />
-        </menu>
-    </item>
 
     <item android:title="@string/menu_more">
         <menu>

@@ -31,7 +31,6 @@ import android.widget.Toast;
 import com.dctimerble.pro.APP;
 import com.dctimerble.pro.R;
 import com.dctimerble.pro.activity.MainActivity;
-import com.dctimerble.pro.activity.WebActivity;
 import com.dctimerble.pro.util.StringUtils;
 import com.dctimerble.pro.util.Utils;
 
@@ -187,16 +186,6 @@ public class ResultDialog extends DialogFragment {
                 }
             }
         });
-        /*btnSolution.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(getContext(), WebActivity.class);
-                String web = "https://alg.cubing.net/?alg=" + solution.trim().replace('\'', '-').replace(' ', '_')
-                        + "&setup=" + scramble.trim().replace('\'', '-').replace(' ', '_');
-                intent.putExtra("web", web);
-                startActivity(intent);
-            }
-        });*/
         btnCopy.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

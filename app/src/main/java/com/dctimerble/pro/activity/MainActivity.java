@@ -56,15 +56,14 @@ import com.dctimerble.pro.model.*;
 import com.dctimerble.pro.util.*;
 import com.dctimerble.pro.view.*;
 import com.dctimerble.pro.widget.*;
+import com.dctimerble.pro.timer.MainComposeUi;
+
 import com.dingmouren.colorpicker.ColorPickerDialog;
 import com.dingmouren.colorpicker.OnColorPickerListener;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.*;
 
-import org.json.JSONObject;
 
 import cs.threephase.Util;
 import scrambler.Scrambler;
@@ -72,7 +71,6 @@ import uz.shift.colorpicker.LineColorPicker;
 import uz.shift.colorpicker.OnColorChangedListener;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
-    private static final String UPDATE_INFO_URL = "https://dctimer.huizhi.ink/update.json";
     private APP app;
     public Context context;
     private DrawerLayout drawer;
@@ -884,34 +882,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 intent.putExtra(GanRobotActivity.EXTRA_PREFILL_SCRAMBLE, rawScramble);
                 startActivity(intent);
                 break;
-            case R.id.nav_algorithm:    //公式库
-                intent = new Intent(context, WebActivity.class);
-                String web = "https://www.speedcubedb.com/";
-                intent.putExtra("web", web);
-                intent.putExtra("title", "Speed Cube Database");
-                startActivity(intent);
-                break;
-            case R.id.nav_algcubing: //alg.cubing
-                intent = new Intent(context, WebActivity.class);
-                web = "https://alg.cubing.net";
-                intent.putExtra("web", web);
-                intent.putExtra("title", "alg.cubing.net");
-                startActivity(intent);
-                break;
-            case R.id.nav_wca:
-                intent = new Intent(context, WebActivity.class);
-                web = "https://www.worldcubeassociation.org/";
-                intent.putExtra("web", web);
-                intent.putExtra("title", "World Cube Association");
-                startActivity(intent);
-                break;
-            case R.id.nav_cubing:
-                intent = new Intent(context, WebActivity.class);
-                web = "https://cubingchina.com/";
-                intent.putExtra("web", web);
-                intent.putExtra("title", getString(R.string.menu_cubing));
-                startActivity(intent);
-                break;
             case R.id.nav_test:
                 //随机生成成绩
                 result.insert(10000, 12000, 4000000, currentScramble.getScramble());
@@ -927,66 +897,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case R.id.nav_about:
                 new AlertDialog.Builder(context).setIcon(R.mipmap.ic_launcher).setTitle(R.string.app_name)
                         .setMessage(String.format(getString(R.string.about_msg), Utils.getVersionName(context)))
-                        .setPositiveButton(R.string.btn_upgrade, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                checkAppUpdate();
-                            }
-                        })
                         .setNegativeButton(R.string.btn_close, null).show();
                 break;
         }
         drawer.closeDrawer(GravityCompat.START);
         return true;
-    }
-
-    private void checkAppUpdate() {
-        final ProgressDialog progressDialog = new ProgressDialog(context);
-        progressDialog.setMessage(getString(R.string.check_update_progress));
-        progressDialog.setCancelable(false);
-        progressDialog.show();
-        new CheckUpdateTask(progressDialog).execute();
-    }
-
-    private void showUpdateResult(UpdateInfo updateInfo) {
-        if (updateInfo == null || updateInfo.error) {
-            Toast.makeText(context, R.string.check_update_failed, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        int currentVersionCode = Utils.getVersion(context);
-        if (updateInfo.versionCode <= currentVersionCode) {
-            Toast.makeText(context, R.string.check_update_latest, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        StringBuilder message = new StringBuilder();
-        message.append(String.format(getString(R.string.update_available_msg), updateInfo.versionName));
-        if (!TextUtils.isEmpty(updateInfo.notes)) {
-            message.append("\n\n").append(updateInfo.notes);
-        }
-        new AlertDialog.Builder(context)
-                .setTitle(R.string.new_version)
-                .setMessage(message.toString())
-                .setPositiveButton(R.string.btn_download, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        openUrl(TextUtils.isEmpty(updateInfo.apkUrl) ? updateInfo.releaseUrl : updateInfo.apkUrl);
-                    }
-                })
-                .setNegativeButton(R.string.btn_close, null)
-                .show();
-    }
-
-    private void openUrl(String url) {
-        if (TextUtils.isEmpty(url)) {
-            Toast.makeText(context, R.string.check_update_failed, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            startActivity(intent);
-        } catch (Exception e) {
-            Toast.makeText(context, R.string.check_update_failed, Toast.LENGTH_SHORT).show();
-        }
     }
 
     @Override
@@ -996,115 +911,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return true;
         }
         return super.dispatchKeyEvent(event);
-    }
-
-    private static class UpdateInfo {
-        int versionCode;
-        String versionName;
-        String releaseUrl;
-        String apkUrl;
-        String notes;
-        String notesUrl;
-        boolean error;
-    }
-
-    private class CheckUpdateTask extends AsyncTask<Void, Void, UpdateInfo> {
-        private final ProgressDialog progressDialog;
-
-        CheckUpdateTask(ProgressDialog progressDialog) {
-            this.progressDialog = progressDialog;
-        }
-
-        @Override
-        protected UpdateInfo doInBackground(Void... voids) {
-            try {
-                URL updateUrl = new URL(UPDATE_INFO_URL);
-                String updateJson = fetchText(updateUrl);
-                JSONObject json = new JSONObject(updateJson);
-                UpdateInfo info = new UpdateInfo();
-                info.versionCode = json.optInt("versionCode", 0);
-                info.versionName = json.optString("versionName", "");
-                info.releaseUrl = json.optString("releaseUrl", "");
-                info.apkUrl = json.optString("apkUrl", "");
-                info.notes = json.optString("notes", "");
-                info.notesUrl = json.optString("notesUrl", "");
-                String changelogNotes = fetchChangelogNotes(updateUrl, info);
-                if (!TextUtils.isEmpty(changelogNotes)) info.notes = changelogNotes;
-                return info;
-            } catch (Exception e) {
-                UpdateInfo info = new UpdateInfo();
-                info.error = true;
-                return info;
-            }
-        }
-
-        private String fetchChangelogNotes(URL updateUrl, UpdateInfo info) {
-            String notesUrl = info.notesUrl;
-            if (TextUtils.isEmpty(notesUrl) && !TextUtils.isEmpty(info.versionName)) {
-                notesUrl = "changelog/" + info.versionName + ".md";
-            }
-            if (TextUtils.isEmpty(notesUrl)) return "";
-            try {
-                String markdown = fetchText(new URL(updateUrl, notesUrl));
-                return parseChangelogMarkdown(markdown);
-            } catch (Exception e) {
-                return "";
-            }
-        }
-
-        private String parseChangelogMarkdown(String markdown) {
-            if (TextUtils.isEmpty(markdown)) return "";
-            String body = markdown.replaceFirst("(?s)^---\\s*(?:\\r?\\n).*?(?:\\r?\\n)---\\s*", "");
-            StringBuilder notes = new StringBuilder();
-            String[] lines = body.split("\\r?\\n");
-            for (String line : lines) {
-                String item = line.trim();
-                if (TextUtils.isEmpty(item)) continue;
-                if (item.matches("^([-*+]|\\d+\\.)\\s+.*")) {
-                    item = item.replaceFirst("^([-*+]|\\d+\\.)\\s+", "").trim();
-                    if (TextUtils.isEmpty(item)) continue;
-                    if (notes.length() > 0) notes.append('\n');
-                    notes.append("- ").append(item);
-                }
-            }
-            return notes.length() > 0 ? notes.toString() : body.trim();
-        }
-
-        private String fetchText(URL url) throws IOException {
-            HttpURLConnection connection = null;
-            BufferedReader reader = null;
-            try {
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(10000);
-                connection.setReadTimeout(15000);
-                connection.setUseCaches(false);
-                connection.connect();
-                if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                    throw new IOException("HTTP " + connection.getResponseCode());
-                }
-                reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
-                StringBuilder builder = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    builder.append(line).append('\n');
-                }
-                return builder.toString();
-            } finally {
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (IOException ignored) {
-                    }
-                }
-                if (connection != null) connection.disconnect();
-            }
-        }
-
-        @Override
-        protected void onPostExecute(UpdateInfo updateInfo) {
-            if (progressDialog.isShowing()) progressDialog.dismiss();
-            showUpdateResult(updateInfo);
-        }
     }
 
     @Override
