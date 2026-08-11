@@ -245,9 +245,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {    //5.0
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         }
-        setContentView(R.layout.activity_main);
         context = this;
         app = getInstance();
+        // Compose owns the complete main screen. Legacy XML initialization is intentionally skipped.
+        app.readPref(sp);
+        MainComposeUi.install(this);
+        return;
         //edit = sp.edit();
         uiMode = getResources().getConfiguration().uiMode;
         dm = getResources().getDisplayMetrics();
