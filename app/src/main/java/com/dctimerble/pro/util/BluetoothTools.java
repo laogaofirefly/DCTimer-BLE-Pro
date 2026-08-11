@@ -70,6 +70,28 @@ public class BluetoothTools {
     private SmartCubeProtocol smartCubeProtocol;
     private SmartTimerProtocol smartTimerProtocol;
     private SmartTimerProtocol.StateCallback smartTimerStateCallback;
+    private DeviceListener deviceListener;
+
+    /** UI-independent listener used by Compose or legacy screens. */
+    public interface DeviceListener {
+        void onDevicesChanged(List<BLEDevice> devices);
+        void onConnected(BLEDevice device);
+        void onDisconnected(BLEDevice device);
+        void onScanStateChanged(boolean scanning);
+    }
+
+    public void setDeviceListener(DeviceListener listener) {
+        this.deviceListener = listener;
+    }
+
+    public List<BLEDevice> getDevices() {
+        return Collections.unmodifiableList(new ArrayList<>(cubeList));
+    }
+
+    private void notifyDevicesChanged() {
+        if (deviceListener != null) deviceListener.onDevicesChanged(getDevices());
+    }
+
     private List<Integer> preMoves = new ArrayList<>();
     private int prevMoveCnt = -1;
     private long lastTime = -1;
@@ -369,6 +391,7 @@ public class BluetoothTools {
             }
             addressMap.add(deviceAddress);
             cubeList.add(device);
+            notifyDevicesChanged();
             context.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -449,6 +472,7 @@ public class BluetoothTools {
 
     public void startScan() {
         cubeList = new ArrayList<>();
+        notifyDevicesChanged();
         if (!isBluetoothEnabled()) {
             Log.w("dct", "蓝牙未开启，取消扫描");
             context.runOnUiThread(new Runnable() {
@@ -471,12 +495,14 @@ public class BluetoothTools {
                                 .build();
                         bluetoothLeScanner.startScan(null, settings, mScanCallback);
                         mScanning = true;
+                        if (deviceListener != null) deviceListener.onScanStateChanged(true);
                         return;
                     }
                     Log.w("dct", "BluetoothLeScanner 为空，回退旧扫描链路");
                 }
                 bluetoothAdapter.startLeScan(mLeScanCallback);
                 mScanning = true;
+                if (deviceListener != null) deviceListener.onScanStateChanged(true);
             } catch (SecurityException e) {
                 Log.e("dct", "启动 BLE 扫描失败", e);
                 mScanning = false;
@@ -561,6 +587,8 @@ public class BluetoothTools {
                 context.dismissDialog();
                 BLEDevice bleDevice = cubeList.get(connectedIndex);
                 bleDevice.setConnected(1);
+                notifyDevicesChanged();
+                if (deviceListener != null) deviceListener.onConnected(bleDevice);
                 gatt.discoverServices();
             }
             if (newState == BluetoothGatt.STATE_DISCONNECTED) {
@@ -569,6 +597,8 @@ public class BluetoothTools {
                 //mBluetoothGatt = null;
                 BLEDevice bleDevice = cubeList.get(connectedIndex);
                 bleDevice.setConnected(0);
+                notifyDevicesChanged();
+                if (deviceListener != null) deviceListener.onDisconnected(bleDevice);
                 if (smartTimerProtocol != null && smartTimerStateCallback != null) {
                     smartTimerStateCallback.onTimerDisconnected();
                 }
