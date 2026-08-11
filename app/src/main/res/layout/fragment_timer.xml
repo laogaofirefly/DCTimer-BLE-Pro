@@ -59,7 +59,11 @@
         android:id="@+id/tv_timer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="@color/modern_text"
+        android:textSize="58sp"
+        android:fontFamily="sans"
+        android:includeFontPadding="false" />
 
     <TextView
         android:id="@+id/tv_stat"
@@ -68,7 +72,10 @@
         android:layout_alignParentBottom="true"
         android:layout_marginLeft="10dp"
         android:layout_marginBottom="8dp"
-        android:textSize="16sp"/>
+        android:textSize="14sp"
+        android:textColor="@color/modern_secondary_text"
+        android:padding="10dp"
+        android:background="@drawable/bg_modern_surface" />
 
     <TextView
         android:id="@+id/tv_test"
@@ -83,6 +90,8 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="18dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
@@ -101,8 +110,11 @@
             android:layout_weight="1"
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
-            android:background="@color/transparent"
-            android:textColor="@drawable/button_text_style"
+            android:background="@drawable/bg_modern_button"
+            android:textColor="@color/modern_surface"
+            android:textSize="15sp"
+            android:minHeight="48dp"
+            android:elevation="3dp"
             android:shadowColor="@color/colorBackground"
             android:shadowDx="1"
             android:shadowDy="1"
