@@ -531,6 +531,7 @@ public class BluetoothTools {
             }
             mScanning = false;
             bluetoothLeScanner = null;
+            if (deviceListener != null) deviceListener.onScanStateChanged(false);
         }
     }
 
