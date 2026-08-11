@@ -35,7 +35,7 @@ object MainComposeUi {
     }
 }
 
-@Composable private fun Root(activity: Activity, timer: MainTimerViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+@Composable private fun Root(activity: Activity, timer: MainTimerViewModel = MainTimerViewModel()) {
     var page by remember { mutableIntStateOf(0) }
     var group by remember { mutableIntStateOf(0) }
     var scramble by remember { mutableStateOf("R U R' U' F' U' F") }
