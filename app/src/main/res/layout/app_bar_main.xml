@@ -1,35 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools" android:id="@+id/main_layout" android:layout_width="match_parent" android:layout_height="match_parent" android:fitsSystemWindows="true" android:background="@color/modern_background" tools:context=".activity.MainActivity">
-    <com.dctimerble.pro.widget.CustomToolbar android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="?android:attr/actionBarSize" android:theme="@style/AppTheme.NoActionBar" android:background="@color/modern_surface" android:elevation="3dp" android:paddingStart="8dp" android:paddingEnd="8dp" app:contentInsetStartWithNavigation="0dp" />
-    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@id/toolbar" android:orientation="horizontal" android:padding="10dp">
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical">
-            <TabHost android:id="@+id/tabhost" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
-                    <FrameLayout android:id="@android:id/tabcontent" android:layout_width="match_parent" android:layout_height="match_parent">
-                        <include android:id="@+id/tab_timer" layout="@layout/fragment_timer" />
-                        <include android:id="@+id/tab_result" layout="@layout/fragment_result" />
-                        <include android:id="@+id/tab_settings" layout="@layout/fragment_setting" />
-                    </FrameLayout>
-                    <TabWidget android:id="@android:id/tabs" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" />
-                </LinearLayout>
-            </TabHost>
-            <LinearLayout android:layout_width="match_parent" android:layout_height="58dp" android:layout_marginTop="8dp" android:orientation="horizontal" android:background="@drawable/bg_modern_surface" android:padding="5dp">
-                <Button android:id="@+id/btn_bottom_timer" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:drawableTop="@drawable/ic_timer_bottom" android:text="计时" android:textAllCaps="false" android:textColor="@color/modern_text" android:background="@drawable/bg_modern_chip" />
-                <Space android:layout_width="8dp" android:layout_height="match_parent" />
-                <Button android:id="@+id/btn_bottom_lan" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:drawableTop="@drawable/ic_lan_bottom" android:text="局域网联机" android:textAllCaps="false" android:textColor="@color/modern_text" android:background="@drawable/bg_modern_chip" />
-            </LinearLayout>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    tools:context=".activity.MainActivity">
+
+    <com.dctimerble.pro.widget.CustomToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?android:attr/actionBarSize"
+        android:theme="@style/AppTheme.NoActionBar"
+        android:background="@drawable/bg_modern_toolbar"
+        android:elevation="8dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        app:contentInsetStartWithNavigation="0dp" >
+
+        <RadioGroup
+            android:id="@+id/radio_tab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="horizontal" >
+
+            <com.dctimerble.pro.widget.CenterRadioButton
+                android:id="@+id/rb_timer"
+                android:layout_width="?android:attr/actionBarSize"
+                android:layout_height="?android:attr/actionBarSize"
+                android:gravity="center"
+                android:text=""
+                android:checked="true"
+                android:button="@null"
+                android:drawableTop="@drawable/timer_button_style"/>
+
+            <com.dctimerble.pro.widget.CenterRadioButton
+                android:id="@+id/rb_result"
+                android:layout_width="?android:attr/actionBarSize"
+                android:layout_height="?android:attr/actionBarSize"
+                android:gravity="center"
+                android:button="@null"
+                android:drawableTop="@drawable/result_button_style"/>
+
+            <com.dctimerble.pro.widget.CenterRadioButton
+                android:id="@+id/rb_setting"
+                android:layout_width="?android:attr/actionBarSize"
+                android:layout_height="?android:attr/actionBarSize"
+                android:gravity="center"
+                android:button="@null"
+                android:drawableTop="@drawable/setting_button_style"/>
+        </RadioGroup>
+    </com.dctimerble.pro.widget.CustomToolbar>
+
+    <TabHost
+        android:id="@+id/tabhost"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/toolbar" >
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:id="@android:id/tabcontent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" >
+
+                <include android:id="@+id/tab_timer"
+                    layout="@layout/fragment_timer" />
+
+                <include android:id="@+id/tab_result"
+                    layout="@layout/fragment_result" />
+
+                <include android:id="@+id/tab_settings"
+                    layout="@layout/fragment_setting" />
+            </FrameLayout>
+
+            <TabWidget
+                android:id="@android:id/tabs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
         </LinearLayout>
-        <LinearLayout android:id="@+id/ble_panel" android:layout_width="190dp" android:layout_height="match_parent" android:layout_marginStart="10dp" android:orientation="vertical" android:padding="14dp" android:background="@drawable/bg_modern_surface" android:elevation="2dp">
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="快捷控制" android:textStyle="bold" android:textSize="17sp" android:textColor="@color/modern_text" />
-            <RadioGroup android:id="@+id/radio_tab" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="vertical">
-                <com.dctimerble.pro.widget.CenterRadioButton android:id="@+id/rb_timer" android:layout_width="match_parent" android:layout_height="52dp" android:gravity="center_vertical" android:paddingStart="10dp" android:text="计时" android:button="@null" android:drawableStart="@drawable/timer_button_style" />
-                <com.dctimerble.pro.widget.CenterRadioButton android:id="@+id/rb_result" android:layout_width="match_parent" android:layout_height="52dp" android:gravity="center_vertical" android:paddingStart="10dp" android:text="成绩" android:button="@null" android:drawableStart="@drawable/result_button_style" />
-                <com.dctimerble.pro.widget.CenterRadioButton android:id="@+id/rb_setting" android:layout_width="match_parent" android:layout_height="52dp" android:gravity="center_vertical" android:paddingStart="10dp" android:text="设置" android:button="@null" android:drawableStart="@drawable/setting_button_style" />
-            </RadioGroup>
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="12dp" android:layout_marginBottom="12dp" android:background="@color/colorGray1" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="蓝牙设备" android:textStyle="bold" android:textColor="@color/modern_text" />
-            <TextView android:id="@+id/tv_ble_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="未连接" android:textColor="@color/modern_secondary_text" android:textSize="13sp" />
-            <Button android:id="@+id/btn_ble_connect" android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="10dp" android:text="连接设备" android:textAllCaps="false" android:textColor="@color/modern_text" android:background="@drawable/bg_modern_chip" />
-        </LinearLayout>
-    </LinearLayout>
+    </TabHost>
 </RelativeLayout>

@@ -341,17 +341,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         rbTimer = findViewById(R.id.rb_timer);
         rbResult = findViewById(R.id.rb_result);
         rbSetting = findViewById(R.id.rb_setting);
-        Button bottomTimer = findViewById(R.id.btn_bottom_timer);
-        Button bottomLan = findViewById(R.id.btn_bottom_lan);
-        bottomTimer.setOnClickListener(v -> {
-            rbTimer.setChecked(true);
-            curTab = 0;
-            tabHost.setCurrentTab(0);
-        });
-        bottomLan.setOnClickListener(v -> startActivity(new Intent(context, com.example.lanmultiplayer.MainActivity.class)));
-        Button bleConnect = findViewById(R.id.btn_ble_connect);
-        bleConnect.setOnClickListener(v -> quickConnectBluetoothTimingDevice());
-
         //计时
         tvScramble = findViewById(R.id.tv_scramble);
         btnScramble = findViewById(R.id.bt_scramble);    //打乱按钮
