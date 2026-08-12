@@ -341,6 +341,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         rbTimer = findViewById(R.id.rb_timer);
         rbResult = findViewById(R.id.rb_result);
         rbSetting = findViewById(R.id.rb_setting);
+
         //计时
         tvScramble = findViewById(R.id.tv_scramble);
         btnScramble = findViewById(R.id.bt_scramble);    //打乱按钮
