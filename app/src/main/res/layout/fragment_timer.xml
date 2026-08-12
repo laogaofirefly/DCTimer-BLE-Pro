@@ -7,6 +7,19 @@
     android:paddingStart="16dp"
     android:paddingEnd="16dp">
 
+    <Button
+        android:id="@+id/btn_timer_session"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_modern_chip"
+        android:text="当前分组"
+        android:textAllCaps="false"
+        android:textColor="@color/modern_text"
+        android:textSize="13sp" />
+
     <com.dctimerble.pro.view.SmartCubeImageView
         android:id="@+id/iv_scramble"
         android:layout_width="wrap_content"
