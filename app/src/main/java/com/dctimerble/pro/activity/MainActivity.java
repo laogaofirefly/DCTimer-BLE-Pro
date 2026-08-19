@@ -56,6 +56,7 @@ import com.dctimerble.pro.model.*;
 import com.dctimerble.pro.util.*;
 import com.dctimerble.pro.view.*;
 import com.dctimerble.pro.widget.*;
+import com.example.lanmultiplayer.LanMatchBridge;
 // Main screen uses the original XML layout and legacy controller.
 
 import com.dingmouren.colorpicker.ColorPickerDialog;
@@ -508,6 +509,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         bluetoothTools = new BluetoothTools(this);
         bluetoothTools.setCubeStateChangedCallback(cubeStateChangeCallback);
+        // LAN bridge is attached by the room ViewModel; this Activity only reports legacy results.
         bluetoothTools.setTimerStateCallback(timerStateCallback);
         //getBluetoothAdapter();
 
@@ -5262,6 +5264,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void addTime(int time, int penalty, SmartCube cube) {
+        LanMatchBridge.publishFinish(time, penalty, isDNF, currentScramble == null ? "" : currentScramble.getScramble());
         result.insert(time, penalty, currentScramble.getScramble(), multiPhase > 0, cube);
         setTimerText(result.getTimeAt(result.length() - 1, false));
         btnSessionMean.setText(getString(R.string.session_mean, result.getSessionMean()));
