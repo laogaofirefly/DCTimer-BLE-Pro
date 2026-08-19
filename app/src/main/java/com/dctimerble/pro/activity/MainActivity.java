@@ -107,6 +107,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private ProgressBar pbScan;
     private TextView tvTest;
     private Button btnScan;
+    private TextView lanRoomButton;
     private KeypadDialog inputTimeDialog;
     private final Runnable stopBleScanRunnable = new Runnable() {
         @Override
@@ -285,6 +286,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             itemStr[i] = getResources().getStringArray(ITEMS_ID[i]);
         if (screenOn) acquireWakeLock();
         toolbar = findViewById(R.id.toolbar); //工具栏
+        lanRoomButton = findViewById(R.id.btn_lan_room);
+        lanRoomButton.setOnClickListener(v -> LanMatchBridge.openRoom(this));
+        LanMatchBridge.bindActivity(this);
         toolbar.setTitle("");
         //toolbar.setBackgroundColor(0x10ffffff);
         setSupportActionBar(toolbar);
@@ -552,6 +556,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onResume() {
         super.onResume();
+        LanMatchBridge.bindActivity(this);
+        if (lanRoomButton != null) {
+            boolean active = LanMatchBridge.hasRoom();
+            lanRoomButton.setVisibility(active ? View.VISIBLE : View.GONE);
+            if (active) lanRoomButton.setText("房间：" + LanMatchBridge.getRoomName());
+        }
         GanRobotBleClient.maybeAutoConnect(this);
         if (sensorManager != null && sensor != null) {
             sensorManager.registerListener(mSensorEventListener, sensor, SensorManager.SENSOR_DELAY_NORMAL);

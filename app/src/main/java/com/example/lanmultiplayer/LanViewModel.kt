@@ -51,7 +51,7 @@ class LanViewModel(app: Application) : AndroidViewModel(app) {
     fun stopSearch() { discoveryJob?.cancel(); discoveryJob=null; client.stopDiscovery(); _searching.value=false }
     fun join(room: Room) = viewModelScope.launch {
         val ok=client.join(room,_name.value); _message.value=if(ok) "已加入：${room.name}" else "加入失败，请检查 Wi-Fi 和房间状态"
-        if(ok) { stopSearch(); _match.value=LanMatchState(true,room.name,_name.value,players=listOf(_name.value)); attachBridge(); listenMessages() }
+        if(ok) { stopSearch(); _match.value=LanMatchState(true,room.name,_name.value,players=listOf(_name.value)); LanMatchBridge.setRoom(room.name); attachBridge(); listenMessages() }
     }
     fun createRoom() = viewModelScope.launch {
         server?.stop(); server=LanServer(getApplication(),RoomConfig(_roomName.value,gameId,mode=SyncMode.RELIABLE))

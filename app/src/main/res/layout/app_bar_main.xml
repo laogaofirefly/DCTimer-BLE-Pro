@@ -50,7 +50,21 @@
                 android:button="@null"
                 android:drawableTop="@drawable/setting_button_style"/>
         </RadioGroup>
-    </com.dctimerble.pro.widget.CustomToolbar>
+            <TextView
+                android:id="@+id/btn_lan_room"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_vertical"
+                android:gravity="center"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:text="联机房间"
+                android:textSize="12sp"
+                android:textColor="@color/colorText"
+                android:visibility="gone"
+                android:clickable="true"
+                android:focusable="true" />
+        </com.dctimerble.pro.widget.CustomToolbar>
 
     <TabHost
         android:id="@+id/tabhost"
