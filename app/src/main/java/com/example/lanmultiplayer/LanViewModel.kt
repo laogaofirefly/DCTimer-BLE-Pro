@@ -17,6 +17,12 @@ data class LanMatchState(
     val selectedCategory: Int = 32,
     val selectedScramble: String = "",
     val opponentTimeMs: Long? = null,
+    val myTimeMs: Long? = null,
+    val myDnf: Boolean = false,
+    val opponentDnf: Boolean = false,
+    val roundResult: RoundResult = RoundResult.PENDING,
+    val myWins: Int = 0,
+    val opponentWins: Int = 0,
     val message: String? = null
 )
 
@@ -25,6 +31,8 @@ class LanViewModel(app: Application) : AndroidViewModel(app) {
     private val client = LanClient(app, gameId)
     private var discoveryJob: Job? = null
     private var messageJob: Job? = null
+    private var serverJob: Job? = null
+    private val evaluatedRounds = mutableSetOf<Int>()
     private var server: LanServer? = null
     private val _name = MutableStateFlow("Player")
     private val _roomName = MutableStateFlow("我的房间")
@@ -45,18 +53,26 @@ class LanViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun createRoom() = viewModelScope.launch {
         server?.stop(); server=LanServer(getApplication(),RoomConfig(_roomName.value,gameId,mode=SyncMode.RELIABLE))
-        runCatching { server?.start() }.onSuccess { _message.value="房间已创建，等待玩家加入"; _match.value=LanMatchState(true,_roomName.value,_name.value); attachBridge() }.onFailure { _message.value="创建失败：${it.message}" }
+        runCatching { server?.start() }.onSuccess { _message.value="房间已创建，等待玩家加入"; _match.value=LanMatchState(true,_roomName.value,_name.value); attachBridge(); serverJob = viewModelScope.launch { server?.reliableMessages?.collect { handleMessage(it.payload.toString(Charsets.UTF_8)) } } }.onFailure { _message.value="创建失败：${it.message}" }
     }
-    fun leaveMatch() { messageJob?.cancel(); LanMatchBridge.detach(); client.close(); server?.stop(); server=null; _match.value=LanMatchState() }
+    fun leaveMatch() { messageJob?.cancel(); serverJob?.cancel(); LanMatchBridge.detach(); client.close(); server?.stop(); server=null; _match.value=LanMatchState() }
     private fun attachBridge() { LanMatchBridge.attach(object : LanMatchBridge.Sender { override fun publish(timeMs: Long, penalty: Int, dnf: Boolean, scramble: String) { publishFinish(timeMs, penalty, dnf, scramble) } }) }
     fun setSelectedScramble(category: Int, scramble: String) { _match.update { it.copy(selectedCategory=category,selectedScramble=scramble) } }
     fun startRound() {
         val m=_match.value
         if(!m.active || m.selectedScramble.isBlank()) { _match.update { it.copy(message="请先在原版计时器中选择分组并生成打乱") }; return }
-        viewModelScope.launch { server?.broadcastReliable("START|${m.selectedCategory}|${m.selectedScramble}".toByteArray()); _match.update { it.copy(message="已发送本轮打乱") } }
+        viewModelScope.launch { val next=m.round+1; server?.broadcastReliable("START|$next|${m.selectedCategory}|${m.selectedScramble}".toByteArray()); _match.update { it.copy(round=next,selectedCategory=m.selectedCategory,selectedScramble=m.selectedScramble,myTimeMs=null,opponentTimeMs=null,roundResult=RoundResult.PENDING,message="已发送本轮打乱") } }
     }
-    fun publishFinish(timeMs: Long, penalty: Int = 0, dnf: Boolean = false, scramble: String = "") { val m=_match.value; if(m.active) viewModelScope.launch { val p="FINISH|${m.playerName}|$timeMs|$penalty|$dnf|$scramble".toByteArray(); if(server!=null) server?.broadcastReliable(p) else client.sendReliable(p) } }
-    private fun listenMessages() { messageJob?.cancel(); messageJob=viewModelScope.launch { client.reliableMessages.collect { val t=it.payload.toString(Charsets.UTF_8); when { t.startsWith("START|")->{val p=t.split("|",limit=3); _match.update { s->s.copy(selectedCategory=p[1].toIntOrNull()?:s.selectedCategory,selectedScramble=p.getOrNull(2)?:"",message="房主已选择本轮打乱") }}; t.startsWith("FINISH|")->{val p=t.split("|",limit=3); val ms=p.getOrNull(2)?.toLongOrNull()?:return@collect; if(p.getOrNull(1)!=_match.value.playerName)_match.update{s->s.copy(opponentName=p[1],opponentTimeMs=ms,message="对手成绩已上传")}} } } } }
+    fun publishFinish(timeMs: Long, penalty: Int = 0, dnf: Boolean = false, scramble: String = "") { val m=_match.value; if(m.active) viewModelScope.launch { _match.update { it.copy(myTimeMs=timeMs, myDnf=dnf, roundResult=RoundResult.PENDING) }; val p=MatchProtocol.finish(m.playerName,m.round,timeMs,penalty,dnf,scramble).toByteArray(); if(server!=null) { server?.broadcastReliable(p); evaluate(m.round) } else client.sendReliable(p) } }
+    private fun evaluate(round: Int) { val m=_match.value; if (!evaluatedRounds.add(round)) return; val a=m.myTimeMs ?: run { evaluatedRounds.remove(round); return }; val b=m.opponentTimeMs ?: run { evaluatedRounds.remove(round); return }; val aw=if(m.myDnf) Long.MAX_VALUE else a; val bw=if(m.opponentDnf) Long.MAX_VALUE else b; val r=when { aw < bw -> RoundResult.WIN; aw > bw -> RoundResult.LOSS; else -> RoundResult.DRAW }; _match.update { it.copy(roundResult=r,myWins=it.myWins + if(r==RoundResult.WIN) 1 else 0,opponentWins=it.opponentWins + if(r==RoundResult.LOSS) 1 else 0,message=when(r){RoundResult.WIN->"本轮胜利";RoundResult.LOSS->"本轮失败";RoundResult.DRAW->"本轮平局";else->""}) } }
+    private fun handleMessage(t: String) {
+        val p=t.split("|", limit=4)
+        if (p.firstOrNull()=="START" && p.size>=4) { val round=p[1].toIntOrNull() ?: return; _match.update { it.copy(round=round, selectedCategory=p[2].toIntOrNull() ?: it.selectedCategory, selectedScramble=p[3], myTimeMs=null, opponentTimeMs=null, roundResult=RoundResult.PENDING, message="房主已开始第 $round 轮") }; return }
+        val f=MatchProtocol.parseFinish(t) ?: return
+        val m=_match.value
+        if(f.player!=m.playerName && f.round==m.round){ _match.update { it.copy(opponentName=f.player, opponentTimeMs=f.timeMs, opponentDnf=f.dnf, message="对手成绩已上传") }; evaluate(f.round) }
+    }
+    private fun listenMessages() { messageJob?.cancel(); messageJob=viewModelScope.launch { client.reliableMessages.collect { handleMessage(it.payload.toString(Charsets.UTF_8)) } } }
     fun clearMessage(){_message.value=null}
     override fun onCleared(){messageJob?.cancel();server?.stop();client.close();super.onCleared()}
 }

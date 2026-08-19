@@ -14,6 +14,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dctimerble.pro.activity.MainActivity
 
+private fun roundLabel(r: RoundResult) = when (r) { RoundResult.WIN -> "胜利"; RoundResult.LOSS -> "失败"; RoundResult.DRAW -> "平局"; RoundResult.PENDING -> "等待对手" }
+private fun formatTime(ms: Long, dnf: Boolean) = if (dnf) "DNF" else "%.2f s".format(ms / 1000.0)
+
 /**
  * 房间等待页。计时、分组选择、打乱选择全部交给原版 MainActivity，
  * 这里不复制计时器 UI，避免出现两套计时器。
@@ -29,6 +32,10 @@ fun LanMatchScreen(viewModel: LanViewModel) {
         Text("房间：${match.roomName}", fontWeight = FontWeight.Bold)
         Text("已进入联机房间。请选择分组和打乱后，使用原版计时器完成本轮。")
         Text("对手：${match.opponentName}", color = Color.Gray)
+        Text("比分：${match.myWins} : ${match.opponentWins}", fontWeight = FontWeight.Bold)
+        Text("本轮：${roundLabel(match.roundResult)}")
+        match.myTimeMs?.let { Text("我方：${formatTime(it, match.myDnf)}") }
+        match.opponentTimeMs?.let { Text("对手：${formatTime(it, match.opponentDnf)}") }
         Button(
             onClick = {
                 val intent = Intent(viewModel.getApplication(), MainActivity::class.java)
