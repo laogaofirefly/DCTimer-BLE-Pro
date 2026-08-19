@@ -32,6 +32,7 @@ fun LanMatchScreen(viewModel: LanViewModel) {
         Text("房间：${match.roomName}", fontWeight = FontWeight.Bold)
         Text("已进入联机房间。请选择分组和打乱后，使用原版计时器完成本轮。")
         Text("房间玩家（${match.players.size}）：${match.players.joinToString("、")}", color = Color.Gray)
+        if (match.players.size < 2) Text("等待其他玩家加入…", color = Color(0xFFB26A00))
         Text("对手：${match.opponentName}", color = Color.Gray)
         Text("比分：${match.myWins} : ${match.opponentWins}", fontWeight = FontWeight.Bold)
         Text("本轮：${roundLabel(match.roundResult)}")

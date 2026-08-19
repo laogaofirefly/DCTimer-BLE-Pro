@@ -114,9 +114,14 @@ class LanServer(
     }
 
     private fun remove(client: Client) {
-        clients.remove(client.id)
+        val removed = clients.remove(client.id)
         udpPeers.remove(client.id)
         client.session.close()
+        if (removed != null && client.name.isNotBlank()) {
+            val leavePayload = "PLAYER|LEAVE|${client.id}|${client.name}".toByteArray()
+            _reliable.tryEmit(NetworkMessage(Protocol.RELIABLE, leavePayload))
+            scope.launch { broadcastTcp(Protocol.RELIABLE, leavePayload) }
+        }
     }
     suspend fun broadcastReliable(payload: ByteArray) {
         broadcastTcp(Protocol.RELIABLE, payload)
