@@ -2,6 +2,8 @@ package com.example.lanmultiplayer
 
 import android.content.Context
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetSocketAddress
@@ -18,6 +20,8 @@ class LanServer(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val clients = ConcurrentHashMap<Int, Client>()
+    private val _reliable = MutableSharedFlow<NetworkMessage>(extraBufferCapacity = 128)
+    val reliableMessages = _reliable.asSharedFlow()
     private val udpPeers = ConcurrentHashMap<Int, InetSocketAddress>()
     private val nextId = AtomicInteger(1)
     private var tcp: ServerSocket? = null
@@ -60,7 +64,10 @@ class LanServer(
             while (scope.isActive) {
                 val message = client.session.receive()
                 when (message.type) {
-                    Protocol.RELIABLE -> broadcastTcp(Protocol.RELIABLE, message.payload)
+                    Protocol.RELIABLE -> {
+                        _reliable.emit(NetworkMessage(message.type, message.payload))
+                        broadcastTcp(Protocol.RELIABLE, message.payload)
+                    }
                     Protocol.PING -> client.session.send(Protocol.PONG, message.payload)
                 }
             }
