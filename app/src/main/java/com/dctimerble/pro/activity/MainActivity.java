@@ -56,7 +56,7 @@ import com.dctimerble.pro.model.*;
 import com.dctimerble.pro.util.*;
 import com.dctimerble.pro.view.*;
 import com.dctimerble.pro.widget.*;
-import com.dctimerble.pro.timer.MainComposeUi;
+// Main screen uses the original XML layout and legacy controller.
 
 import com.dingmouren.colorpicker.ColorPickerDialog;
 import com.dingmouren.colorpicker.OnColorPickerListener;
@@ -247,12 +247,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         context = this;
         app = getInstance();
-        // Compose owns the complete main screen. Legacy XML initialization is intentionally skipped.
+        setContentView(R.layout.activity_main);
         app.readPref(sp);
-        MainComposeUi.install(this);
-        // The legacy initialization below remains available for non-Compose experiments;
-        // the Compose entry point is the only active main UI.
-        if (!isFinishing()) return;
         //edit = sp.edit();
         uiMode = getResources().getConfiguration().uiMode;
         dm = getResources().getDisplayMetrics();
@@ -876,6 +872,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
                 Intent intent = new Intent(context, TestActivity.class);
                 startActivity(intent);
+                break;
+            case R.id.nav_lan_multiplayer:
+                startActivity(new Intent(context, com.example.lanmultiplayer.MainActivity.class));
                 break;
             case R.id.nav_gan_robot:
                 intent = new Intent(context, GanRobotActivity.class);
