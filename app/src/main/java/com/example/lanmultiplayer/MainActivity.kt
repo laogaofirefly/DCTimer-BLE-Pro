@@ -1,6 +1,8 @@
 package com.example.lanmultiplayer
 
-import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,8 +14,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 class MainActivity : ComponentActivity() {
     private val viewModel: LanViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestLanPermissions()
         setContent {
             MaterialTheme {
                 Surface {
@@ -22,5 +26,13 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun requestLanPermissions() {
+        val permissions = buildList {
+            if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            if (Build.VERSION.SDK_INT >= 23) add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (permissions.isNotEmpty()) requestPermissions(permissions.toTypedArray(), 4101)
     }
 }

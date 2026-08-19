@@ -26,7 +26,9 @@ class NsdDiscovery(context: Context) {
             override fun onStartDiscoveryFailed(s: String, e: Int) { if (closed.compareAndSet(false, true)) close(IllegalStateException("NSD $e")) }
             override fun onStopDiscoveryFailed(s: String, e: Int) = Unit
             override fun onServiceFound(info: NsdServiceInfo) {
-                if (!found.add(info.serviceName)) return
+                // Android may report the same service repeatedly and may also report
+                // services from other types. Only resolve our own TCP service.
+                if (info.serviceType != SERVICE_TYPE || !found.add(info.serviceName)) return
                 nsd.resolveService(info, object : NsdManager.ResolveListener {
                     override fun onResolveFailed(i: NsdServiceInfo, e: Int) { found.remove(i.serviceName) }
                     override fun onServiceResolved(r: NsdServiceInfo) {
