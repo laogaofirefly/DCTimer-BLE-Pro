@@ -5,9 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/modern_background"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp">
+    android:background="@color/colorBackground">
 
     <View
         android:layout_width="match_parent"
@@ -71,13 +69,8 @@
     <LinearLayout
         android:id="@+id/ll_session"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginTop="10dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="4dp"
-        android:background="@drawable/bg_modern_surface"
-        android:elevation="2dp" >
+        android:layout_height="38dp"
+        android:orientation="horizontal" >
 
         <ImageButton
             android:id="@+id/btn_search"
@@ -93,9 +86,9 @@
             android:layout_weight="1"
             android:paddingLeft="5dp"
             android:paddingRight="5dp"
-            android:background="@drawable/bg_modern_chip"
+            android:background="@drawable/item_background"
             android:textSize="15sp"
-            android:textColor="@color/modern_text"
+            android:textColor="@drawable/button_text_style"
             android:textAllCaps="false"
             android:singleLine="true"
             style="?android:attr/borderlessButtonStyle"/>
@@ -128,10 +121,6 @@
         android:id="@+id/list_res"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/bg_modern_surface"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
         android:layout_weight="1"
         android:divider="@null"
         android:fastScrollEnabled="true" />
@@ -157,10 +146,9 @@
     <Button
         android:id="@+id/btn_session_mean"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="10dp"
-        android:background="@drawable/bg_modern_button"
+        android:layout_height="38dp"
+        android:background="@drawable/item_background"
         android:textSize="15sp"
-        android:textColor="@color/modern_surface"
+        android:textColor="@drawable/button_text_style"
         android:textAllCaps="false" />
 </LinearLayout>

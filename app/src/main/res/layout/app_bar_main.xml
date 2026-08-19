@@ -14,10 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="?android:attr/actionBarSize"
         android:theme="@style/AppTheme.NoActionBar"
-        android:background="@drawable/bg_modern_toolbar"
-        android:elevation="8dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
+        android:background="@color/transparent"
         app:contentInsetStartWithNavigation="0dp" >
 
         <RadioGroup
