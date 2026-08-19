@@ -60,6 +60,11 @@ class LanServer(
             if (hello.type != Protocol.HELLO) throw IllegalStateException("HELLO required")
             client.name = hello.payload.toString(Charsets.UTF_8).take(32)
             client.session.send(Protocol.HELLO, intBytes(client.id))
+            // 新加入者需要先收到房主和已有玩家列表，避免客户端只看到自己。
+            client.session.send(Protocol.RELIABLE, "PLAYER|JOIN|0|房主".toByteArray())
+            clients.values.filter { it.id != client.id && it.name.isNotBlank() }.forEach {
+                client.session.send(Protocol.RELIABLE, "PLAYER|JOIN|${it.id}|${it.name}".toByteArray())
+            }
             val joinPayload = "PLAYER|JOIN|${client.id}|${client.name}".toByteArray()
             _reliable.emit(NetworkMessage(Protocol.RELIABLE, joinPayload))
             broadcastTcp(Protocol.RELIABLE, joinPayload)
