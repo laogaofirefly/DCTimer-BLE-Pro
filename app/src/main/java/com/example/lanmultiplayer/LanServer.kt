@@ -60,7 +60,9 @@ class LanServer(
             if (hello.type != Protocol.HELLO) throw IllegalStateException("HELLO required")
             client.name = hello.payload.toString(Charsets.UTF_8).take(32)
             client.session.send(Protocol.HELLO, intBytes(client.id))
-            broadcastTcp(Protocol.RELIABLE, "join:${client.id}:${client.name}".toByteArray())
+            val joinPayload = "PLAYER|JOIN|${client.id}|${client.name}".toByteArray()
+            _reliable.emit(NetworkMessage(Protocol.RELIABLE, joinPayload))
+            broadcastTcp(Protocol.RELIABLE, joinPayload)
             while (scope.isActive) {
                 val message = client.session.receive()
                 when (message.type) {
