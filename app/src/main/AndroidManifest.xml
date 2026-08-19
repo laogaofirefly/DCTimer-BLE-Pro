@@ -43,10 +43,6 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.example.lanmultiplayer.MainActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
-            android:label="@string/action_lan_multiplayer" />
-        <activity
             android:name=".activity.SessionActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:label="@string/title_activity_session" />
