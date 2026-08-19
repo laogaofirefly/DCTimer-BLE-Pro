@@ -55,7 +55,7 @@ class LanViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun createRoom() = viewModelScope.launch {
         server?.stop(); server=LanServer(getApplication(),RoomConfig(_roomName.value,gameId,mode=SyncMode.RELIABLE))
-        runCatching { server?.start() }.onSuccess { _message.value="房间已创建，等待玩家加入"; _match.value=LanMatchState(true,_roomName.value,_name.value,players=listOf(_name.value)); attachBridge(); serverJob = viewModelScope.launch { server?.reliableMessages?.collect { handleMessage(it.payload.toString(Charsets.UTF_8)) } } }.onFailure { _message.value="创建失败：${it.message}" }
+        runCatching { server?.start() }.onSuccess { _message.value="房间已创建，等待玩家加入"; _match.value=LanMatchState(true,_roomName.value,_name.value,players=listOf(_name.value)); LanMatchBridge.setRoom(_roomName.value); attachBridge(); serverJob = viewModelScope.launch { server?.reliableMessages?.collect { handleMessage(it.payload.toString(Charsets.UTF_8)) } } }.onFailure { _message.value="创建失败：${it.message}" }
     }
     fun leaveMatch() { messageJob?.cancel(); serverJob?.cancel(); LanMatchBridge.detach(); client.close(); server?.stop(); server=null; _match.value=LanMatchState() }
     private fun attachBridge() { LanMatchBridge.attach(object : LanMatchBridge.Sender { override fun publish(timeMs: Long, penalty: Int, dnf: Boolean, scramble: String) { publishFinish(timeMs, penalty, dnf, scramble) } }) }

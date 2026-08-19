@@ -17,6 +17,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LanMatchBridge.bindLanActivity(this)
         requestLanPermissions()
         setContent {
             MaterialTheme {
