@@ -1,6 +1,7 @@
 package com.example.lanmultiplayer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,9 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanScreen(viewModel: LanViewModel) {
     val rooms by viewModel.rooms.collectAsStateWithLifecycle()
@@ -24,62 +25,49 @@ fun LanScreen(viewModel: LanViewModel) {
     val roomName by viewModel.roomName.collectAsStateWithLifecycle()
     val searching by viewModel.searching.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
-
-    Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("局域网联机") }) }
-    ) { padding ->
+    val blue = Color(0xFF448AFF)
+    val bg = Color(0xFFF7F7F7)
+    Column(Modifier.fillMaxSize().background(bg)) {
+        Row(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("联机", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF222222), modifier = Modifier.weight(1f))
+            Text("局域网", fontSize = 13.sp, color = Color(0xFF777777))
+        }
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(vertical = 12.dp)
         ) {
+            item { StatusCard(state, stats) }
             item {
-                StatusCard(state, stats)
-            }
-            item {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = viewModel::setName,
-                    label = { Text("玩家名称") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            item {
-                Card(shape = RoundedCornerShape(18.dp)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("创建房间", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        OutlinedTextField(
-                            value = roomName,
-                            onValueChange = viewModel::setRoomName,
-                            label = { Text("房间名称") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Button(onClick = viewModel::createRoom, modifier = Modifier.fillMaxWidth()) {
-                            Text("创建局域网房间")
-                        }
-                    }
+                LegacyPanel("玩家") {
+                    OutlinedTextField(value = name, onValueChange = viewModel::setName, label = { Text("玩家名称") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 }
             }
             item {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Text("可加入房间", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    OutlinedButton(onClick = { if (searching) viewModel.stopSearch() else viewModel.search() }) {
-                        Text(if (searching) "停止搜索" else "搜索")
-                    }
+                LegacyPanel("创建房间") {
+                    OutlinedTextField(value = roomName, onValueChange = viewModel::setRoomName, label = { Text("房间名称") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Button(onClick = viewModel::createRoom, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = blue), shape = RoundedCornerShape(4.dp)) { Text("创建局域网房间") }
                 }
             }
-            if (rooms.isEmpty()) {
-                item { EmptyRooms(searching) }
-            } else {
-                items(rooms, key = { "${it.name}-${it.host}-${it.tcpPort}" }) { room -> RoomItem(room, viewModel::join) }
-            }
-            message?.let { text ->
-                item {
-                    AssistChip(onClick = viewModel::clearMessage, label = { Text(text) })
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+                    Text("可加入房间", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    OutlinedButton(onClick = { if (searching) viewModel.stopSearch() else viewModel.search() }, shape = RoundedCornerShape(4.dp)) { Text(if (searching) "停止搜索" else "搜索") }
                 }
             }
+            if (rooms.isEmpty()) item { EmptyRooms(searching) }
+            else items(rooms, key = { "${it.name}-${it.host}-${it.tcpPort}" }) { room -> RoomItem(room, viewModel::join) }
+            message?.let { text -> item { AssistChip(onClick = viewModel::clearMessage, label = { Text(text) }) } }
+        }
+    }
+}
+
+@Composable
+private fun LegacyPanel(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(4.dp)), shape = RoundedCornerShape(4.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(title, fontWeight = FontWeight.Bold, color = Color(0xFF333333))
+            content()
         }
     }
 }
@@ -92,7 +80,7 @@ private fun StatusCard(state: ConnectionState, stats: NetworkStats) {
         ConnectionState.FAILED -> MaterialTheme.colorScheme.error
         ConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.outline
     }
-    Card(shape = RoundedCornerShape(18.dp)) {
+    Card(shape = RoundedCornerShape(4.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(12.dp).background(color, RoundedCornerShape(50)))
             Spacer(Modifier.width(10.dp))
@@ -106,7 +94,7 @@ private fun StatusCard(state: ConnectionState, stats: NetworkStats) {
 
 @Composable
 private fun RoomItem(room: Room, onJoin: (Room) -> Unit) {
-    Card(shape = RoundedCornerShape(16.dp)) {
+    Card(shape = RoundedCornerShape(4.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(room.name, fontWeight = FontWeight.Bold)
@@ -120,7 +108,7 @@ private fun RoomItem(room: Room, onJoin: (Room) -> Unit) {
 
 @Composable
 private fun EmptyRooms(searching: Boolean) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(4.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(if (searching) "正在搜索局域网房间…" else "暂无房间")
             Text("请确认设备连接到同一个 Wi-Fi", style = MaterialTheme.typography.bodySmall)

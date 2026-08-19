@@ -61,6 +61,11 @@
             android:name=".activity.GanRobotActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:label="@string/action_gan_robot" />
+        <activity
+            android:name="com.example.lanmultiplayer.MainActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
+            android:exported="false"
+            android:label="@string/action_lan_multiplayer" />
     </application>
 
 </manifest>
