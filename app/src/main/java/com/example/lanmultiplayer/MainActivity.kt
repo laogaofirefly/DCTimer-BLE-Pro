@@ -6,15 +6,19 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 class MainActivity : ComponentActivity() {
     private val viewModel: LanViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface { LanScreen(viewModel) }
+                Surface {
+                    val match by viewModel.match.collectAsStateWithLifecycle()
+                    if (match.active) LanMatchScreen(viewModel) else LanScreen(viewModel)
+                }
             }
         }
     }

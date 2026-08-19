@@ -109,8 +109,12 @@ class LanServer(
         udpPeers.remove(client.id)
         client.session.close()
     }
+    suspend fun broadcastReliable(payload: ByteArray) {
+        broadcastTcp(Protocol.RELIABLE, payload)
+    }
 
     fun stop() {
+
         running = false
         registration = null
         clients.values.forEach { it.session.close() }
