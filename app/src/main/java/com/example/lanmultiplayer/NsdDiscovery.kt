@@ -8,6 +8,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 class NsdDiscovery(context: Context) {
     companion object { const val SERVICE_TYPE = "_lanmp._tcp." }
@@ -17,11 +18,12 @@ class NsdDiscovery(context: Context) {
 
     fun discover(gameId: String): Flow<Room> = callbackFlow {
         val found = ConcurrentHashMap.newKeySet<String>()
+        val closed = AtomicBoolean(false)
         val listener = object : NsdManager.DiscoveryListener {
             override fun onDiscoveryStarted(s: String) = Unit
             override fun onDiscoveryStopped(s: String) = Unit
             override fun onServiceLost(i: NsdServiceInfo) { found.remove(i.serviceName) }
-            override fun onStartDiscoveryFailed(s: String, e: Int) { close(IllegalStateException("NSD $e")) }
+            override fun onStartDiscoveryFailed(s: String, e: Int) { if (closed.compareAndSet(false, true)) close(IllegalStateException("NSD $e")) }
             override fun onStopDiscoveryFailed(s: String, e: Int) = Unit
             override fun onServiceFound(info: NsdServiceInfo) {
                 if (!found.add(info.serviceName)) return
@@ -38,7 +40,7 @@ class NsdDiscovery(context: Context) {
         }
         val lock = wifi.createMulticastLock("lanmp_nsd").apply { setReferenceCounted(false); acquire() }
         nsd.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, listener)
-        awaitClose { runCatching { nsd.stopServiceDiscovery(listener) }; if (lock.isHeld) lock.release() }
+        awaitClose { if (closed.compareAndSet(false, true)) runCatching { nsd.stopServiceDiscovery(listener) }; if (lock.isHeld) lock.release() }
     }
 
     fun register(config: RoomConfig, tcpPort: Int, udpPort: Int, players: Int): NsdManager.RegistrationListener {

@@ -46,11 +46,11 @@ class LanViewModel(app: Application) : AndroidViewModel(app) {
     val state = client.state; val stats = client.stats
     fun setName(value: String) { _name.value = value.take(24) }
     fun setRoomName(value: String) { _roomName.value = value.take(24) }
-    fun search() { discoveryJob?.cancel(); discoveryJob = viewModelScope.launch { _searching.value=true; runCatching { client.startDiscovery() }; awaitCancellation() } }
+    fun search() { stopSearch(); _searching.value=true; discoveryJob = viewModelScope.launch { try { client.startDiscovery(); awaitCancellation() } catch (_: CancellationException) { } catch (e: Exception) { _message.value="搜索失败：${e.message ?: "请检查 Wi-Fi 和定位权限"}"; _searching.value=false } } }
     fun stopSearch() { discoveryJob?.cancel(); discoveryJob=null; client.stopDiscovery(); _searching.value=false }
     fun join(room: Room) = viewModelScope.launch {
         val ok=client.join(room,_name.value); _message.value=if(ok) "已加入：${room.name}" else "加入失败，请检查 Wi-Fi 和房间状态"
-        if(ok) { _match.value=LanMatchState(true,room.name,_name.value,players=listOf(_name.value)); attachBridge(); listenMessages() }
+        if(ok) { stopSearch(); _match.value=LanMatchState(true,room.name,_name.value,players=listOf(_name.value)); attachBridge(); listenMessages() }
     }
     fun createRoom() = viewModelScope.launch {
         server?.stop(); server=LanServer(getApplication(),RoomConfig(_roomName.value,gameId,mode=SyncMode.RELIABLE))
