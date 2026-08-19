@@ -3,6 +3,7 @@ package scrambler;
 import android.util.Log;
 
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static scrambler.Scrambler.cubesuff;
 
@@ -154,7 +155,7 @@ public class MegaScramble {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < scrambleLen; i++) {
             if (i != 0) sb.append("x ");
-            sb.append(megascramble(new String[][] {{"R"}, {"L"}}, suff, 3 + (int) (Math.random() * 3)));
+            sb.append(megascramble(new String[][] {{"R"}, {"L"}}, suff, 3 + ThreadLocalRandom.current().nextInt(3)));
         }
         return sb.toString();
     }
@@ -166,7 +167,7 @@ public class MegaScramble {
         String[] minxsuff = {"", "2", "'", "2'"};
         for (i = 0; i < Math.ceil(scrambleLen / 10.0); i++) {
             for (j = 0; j < 10; j++) {
-                sb.append(j % 2 == 0 ? (Math.random() > 0.5 ? "R" : "r") : (Math.random() > 0.5 ? "D" : "d")).append(rndEl(El)).append(' ');
+                sb.append(j % 2 == 0 ? (ThreadLocalRandom.current().nextBoolean() ? "R" : "r") : (ThreadLocalRandom.current().nextBoolean() ? "D" : "d")).append(rndEl(El)).append(' ');
             }
             sb.append('y').append(rndEl(minxsuff)).append(' ');
         }

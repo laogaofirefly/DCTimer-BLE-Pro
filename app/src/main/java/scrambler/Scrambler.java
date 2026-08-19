@@ -389,7 +389,7 @@ public class Scrambler {
         this.category = category;
         String scr;
         StringBuilder sb;
-        scrambleList = new ArrayList<>();
+        scrambleList = new ArrayList<>(1);
         hint = "";
         cubeState = "";
         scrambleIdx = 0;

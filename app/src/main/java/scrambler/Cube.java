@@ -1,5 +1,7 @@
 package scrambler;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class Cube {
     //Default settings
     private static int size;
@@ -56,11 +58,11 @@ public class Cube {
             do {
                 do {
                     // choose a random axis
-                    ax = (int) (Math.random() * 3);
+                    ax = ThreadLocalRandom.current().nextInt(3);
                     // choose a random move type on that axis
-                    sl = (int) (Math.random() * tl);
+                    sl = ThreadLocalRandom.current().nextInt(tl);
                     // choose random amount
-                    q = (int) (Math.random() * 3);
+                    q = ThreadLocalRandom.current().nextInt(3);
                 } while (ax == la && axsl[sl] != 0);    // loop until have found an unused movetype
             } while (ax == la   // loop while move is reducible: reductions only if on same axis as previous moves
                 && !mult        // multislice moves have no reductions so always ok
